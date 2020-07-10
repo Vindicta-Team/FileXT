@@ -14,13 +14,42 @@ fileInfo::fileInfo(std::string& fileName) :
 	// Attempt to read the file
 	ifstream f(fileName, ios_base::in | ios_base::binary);
 	if (f.is_open()) {
-		// Read content
-		LOG(("  File was found in file system. Reading content... NYI.\n"));
+		// Read content into RAM
+		LOG(("  File was found in file system. Reading content... \n"));
+		f.seekg(0, std::ios::end);
+		auto fSize = f.tellg();
+		char* fContent = new char[fSize];
+		f.seekg(0, std::ios::beg);
+		f.read(fContent, fSize);
+		f.close();
+
+		// Move data to hashmap
+		unsigned int i = 0;
+		while (i < fSize) {
+			// Find end of key
+			unsigned int iKeyStart = i;
+			while (fContent[i] != 0)
+				i++;
+			i++;	// End of key is always {0}
+
+			// Find end of value
+			unsigned int iValStart = i;
+			while (fContent[i] != 0)
+				i++;
+			i += 2; // End of value is always {0, '\n'}
+
+			string key(&fContent[iKeyStart]);
+			string val(&fContent[iValStart]);
+			m_map[key] = val;
+
+			LOG(("    Added %s: size: %i\n", key.c_str(), (int)val.size()));
+		};
+
+		delete []fContent;
 	}
 	else {
 		LOG(("  File was not found in file system.\n"));
 	}
-	f.close();
 }
 
 fileInfo::~fileInfo()
