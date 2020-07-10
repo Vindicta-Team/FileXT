@@ -90,6 +90,12 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 		return gFileMgr.close(fileName);
 	};
 
+	// ["", ["write", fileName]]
+	if (strcmp(functionName, "\"write\"") == 0) {
+		ASSERT_EXT_ARGC(argc, 2)
+		return gFileMgr.write(fileName);
+	};
+
 	// ["", ["get", fileName, key]]
 	if (strcmp(functionName, "\"get\"") == 0) {
 		ASSERT_EXT_ARGC(argc, 3)

@@ -86,3 +86,22 @@ int filext::filemgr::get(const std::string& fName, const char* key, string& outV
 		return FILEXT_FILE_NOT_OPEN;
 	}
 }
+
+int filext::filemgr::write(const std::string& fName)
+{
+	LOG(("write(%s)\n", fName.c_str()));
+
+	// Check if this file is already open
+	string fNameStr(fName);
+	auto search = m_fileMap.find(fNameStr);
+	if (search != m_fileMap.end()) {
+		fileInfo* finfo = search->second;
+		finfo->write();
+	}
+	else {
+		LOG(("  File is not open\n"));
+		// Return error
+		return FILEXT_FILE_NOT_OPEN;
+	}
+	return 0;
+}

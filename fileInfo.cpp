@@ -27,3 +27,22 @@ fileInfo::~fileInfo()
 {
 	LOG(("DELETE fileinfo: %s\n", m_fileName.c_str()));
 }
+
+void filext::fileInfo::write()
+{
+	ofstream f(m_fileName, ios_base::out | ios_base::binary);
+	char endKey[] = {0};
+	char endVal[] = {0, '\n'};
+	for (auto iter = m_map.begin(); iter != m_map.end(); ++iter) {
+		const string* key = &(iter->first);
+		const string* val = &(iter->second);
+
+		LOG(("    writing %s, size: %i\n", iter->first.c_str(), (int)val->size()));
+
+		f.write(key->data(), key->size());
+		f.write(endKey, sizeof(endKey));
+		f.write(val->data(), val->size());
+		f.write(endVal, sizeof(endVal));
+	}
+	f.close();
+}

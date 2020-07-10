@@ -16,5 +16,6 @@ namespace filext
 		~fileInfo();
 		std::string m_fileName;
 		std::unordered_map<std::string, std::string> m_map;
+		void write();
 	};
 };
