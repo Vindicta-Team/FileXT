@@ -1,0 +1,7 @@
+// Error codes for extension
+#define FILEXT_SUCCESS 0
+#define FILEXT_WRONG_ARG_COUNT 1
+#define FILEXT_WRONG_FILE_NAME 2
+#define FILEXT_WRONG_FUNCTION_NAME 3
+#define FILEXT_FILE_NOT_OPEN 4
+#define FILEXT_KEY_NOT_FOUND 5
