@@ -9,6 +9,8 @@ using namespace std;
 // Globals
 filext::filemgr gFileMgr;
 
+bool checkFileName(string& fileName);
+
 BOOL APIENTRY DllMain( HMODULE hModule,
                        DWORD  ul_reason_for_call,
                        LPVOID lpReserved
@@ -72,6 +74,17 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 		fileName.erase(0, 1);
 		fileName.pop_back();
 		//LOG(("Argc: %i\n", argc));
+
+		// Check file name
+		if (!checkFileName(fileName))
+			return FILEXT_WRONG_FILE_NAME;
+
+		// Ensure that there is a folder for filext files
+		if(!filesystem::exists("filext")) {
+			filesystem::create_directory("filext");
+		}
+
+		fileName = string("filext/") + fileName;
 	}
 
 	LOG(("RVExtensionArgs: function: %s, fileName: %s, outputSize: %i\n", functionName, fileName.c_str(), outputSize));
@@ -96,11 +109,23 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 		return gFileMgr.write(fileName);
 	};
 
-	// ["", ["get", fileName, key]]
+	// ["", ["read", fileName]]
+	if (strcmp(functionName, "\"read\"") == 0) {
+		ASSERT_EXT_ARGC(argc, 2)
+		return gFileMgr.read(fileName);
+	};
+
+	// ["", ["get", fileName, key, reset(0/1)]]
 	if (strcmp(functionName, "\"get\"") == 0) {
-		ASSERT_EXT_ARGC(argc, 3)
+		ASSERT_EXT_ARGC(argc, 4)
 		std::string strOut("");
-		int retInt = gFileMgr.get(fileName, argv[2], strOut);
+		int reset = 0;
+		try {
+			reset = std::stoi(argv[3]);
+		} catch ( ... ) {
+			reset = 0;
+		}
+		int retInt = gFileMgr.get(fileName, argv[2], strOut, 3, (bool)reset);
 		strcpy_s(output, outputSize - 1, strOut.c_str());
 		return retInt;
 	};
@@ -131,6 +156,24 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 void RVExtensionVersion(char* output, int outputSize)
 {
 	strcpy_s(output, outputSize-1, "Filext 1.0");
+}
+
+// Ensures that the file name is correct:
+// Has non-negative length
+// Doesn't have / or \ inside it
+bool checkFileName(string& fileName) {
+
+	// Check length
+	if (fileName.size() == 0)
+		return false;
+
+	// Check forbidden characters
+	string forbiddenChars("\\/?%*:|\"<>,;=");
+	if (fileName.find_first_of(forbiddenChars) != string::npos)
+		return false;
+
+	// All good so far
+	return true;
 }
 
 
