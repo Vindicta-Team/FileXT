@@ -3,13 +3,17 @@
 #include "common.h"
 #include "errorCodes.h"
 #include "filemgr.h"
+#include "value.h"
 
 using namespace std;
 
 // Globals
 filext::filemgr gFileMgr;
+string dllFolder;
+string fileStorageFolder;
 
 bool checkFileName(string& fileName);
+string getDllFolder();
 
 BOOL APIENTRY DllMain( HMODULE hModule,
                        DWORD  ul_reason_for_call,
@@ -18,6 +22,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 {
     switch (ul_reason_for_call)
     {
+
     case DLL_PROCESS_ATTACH:
 		// Allocate console
 #ifdef _DEBUG
@@ -25,7 +30,19 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		freopen_s((FILE**)stdout, "CONOUT$", "w", stdout);
 		LOG(("DLL Attached\n"));
 #endif
+		// Resolve path to this dll
+		dllFolder = getDllFolder();
+		LOG(("DLL path: %s\n", dllFolder.c_str()));
+		fileStorageFolder = dllFolder + string("storage\\");
+
+		// Ensure that there is a folder for filext files
+		if (!filesystem::exists(fileStorageFolder)) {
+			filesystem::create_directory(fileStorageFolder);
+		}
 		break;
+
+
+
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
     case DLL_PROCESS_DETACH:
@@ -40,7 +57,6 @@ extern "C"
 	__declspec(dllexport) int __stdcall RVExtensionArgs(char* output, int outputSize, const char* function, const char** argv, int argc);
 	__declspec(dllexport) void __stdcall RVExtensionVersion(char* output, int outputSize);
 }
-
 
 void RVExtension(char* output, int outputSize, const char* function)
 {
@@ -76,15 +92,10 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 		//LOG(("Argc: %i\n", argc));
 
 		// Check file name
+		// Bail if file name is wrong
 		if (!checkFileName(fileName))
 			return FILEXT_WRONG_FILE_NAME;
-
-		// Ensure that there is a folder for filext files
-		if(!filesystem::exists("filext")) {
-			filesystem::create_directory("filext");
-		}
-
-		fileName = string("filext/") + fileName;
+		fileName = fileStorageFolder + fileName;
 	}
 
 	LOG(("RVExtensionArgs: function: %s, fileName: %s, outputSize: %i\n", functionName, fileName.c_str(), outputSize));
@@ -93,31 +104,31 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 
 	// ["", ["open", fileName]]
 	if (strcmp(functionName, "\"open\"") == 0) {
-		ASSERT_EXT_ARGC(argc, 2)
+		ASSERT_EXT_ARGC(argc, 2);
 		return gFileMgr.open(fileName);
 	};
 
 	// ["", ["close", fileName]]
 	if (strcmp(functionName, "\"close\"") == 0) {
-		ASSERT_EXT_ARGC(argc, 2)
+		ASSERT_EXT_ARGC(argc, 2);
 		return gFileMgr.close(fileName);
 	};
 
 	// ["", ["write", fileName]]
 	if (strcmp(functionName, "\"write\"") == 0) {
-		ASSERT_EXT_ARGC(argc, 2)
+		ASSERT_EXT_ARGC(argc, 2);
 		return gFileMgr.write(fileName);
 	};
 
 	// ["", ["read", fileName]]
 	if (strcmp(functionName, "\"read\"") == 0) {
-		ASSERT_EXT_ARGC(argc, 2)
+		ASSERT_EXT_ARGC(argc, 2);
 		return gFileMgr.read(fileName);
 	};
 
 	// ["", ["get", fileName, key, reset(0/1)]]
 	if (strcmp(functionName, "\"get\"") == 0) {
-		ASSERT_EXT_ARGC(argc, 4)
+		ASSERT_EXT_ARGC(argc, 4);
 		outputSize -= 4; // Just to be safe...
 		std::string strOut("");
 		int reset = 0;
@@ -133,8 +144,26 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 
 	// [value, ["set", fileName, key]]
 	if (strcmp(functionName, "\"set\"") == 0) {
-		ASSERT_EXT_ARGC(argc, 3)
+		ASSERT_EXT_ARGC(argc, 3);
 		return gFileMgr.set(fileName, argv[2], data);
+	};
+
+	// ["", ["getFiles"]]
+	if (strcmp(functionName, "\"getFiles\"") == 0) {
+		ASSERT_EXT_ARGC(argc, 1);
+
+		vector<sqf::value> vectorFileNamesSQF;
+		for (const auto& entry : filesystem::directory_iterator(fileStorageFolder)) {
+			string fileName = entry.path().filename().string();
+			vectorFileNamesSQF.push_back(sqf::value(fileName));
+			LOG(("File: %s\n", fileName.c_str()));
+		}
+		
+		sqf::value fileNamesSQFArray(vectorFileNamesSQF);
+		string strOut = fileNamesSQFArray.to_string();
+
+		strcpy_s(output, outputSize - 1, strOut.c_str());
+		return 0;
 	};
 
 	// ["testDataToCopy", ["loopback"]]
@@ -178,20 +207,26 @@ bool checkFileName(string& fileName) {
 }
 
 
-/*
-open("mysave.vin")
-setv("mysave.vin", "varName", "value")
-setv("mysave.vin", "varName", "value")
-setv("mysave.vin", "varName", "value")
-setv("mysave.vin", "varName", "value")
-write("mysave.vin")
+// Borrowed from https://gist.github.com/pwm1234/05280cf2e462853e183d
+std::string getDllFolder()
+{
+	char path[FILENAME_MAX];
+	HMODULE hm = NULL;
 
-listFiles()
+	if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+		GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+		(LPCSTR)getDllFolder,
+		&hm))
+	{
+		LOG(("error: GetModuleHandle returned %i", GetLastError()));
+		return std::string("");
+	}
 
-//keys = getKeys("mysave.vin")
-open("mysave.vin")
-getv("mysave.vin", "varName")
-getv("mysave.vin", "varName")
-close("mysave.vin")
+	GetModuleFileNameA(hm, path, sizeof(path));
+	std::string p(path);
 
-*/
+	// Remove DLL name from the path
+	auto pos = p.rfind('\\');
+	p.erase(pos + 1, p.size());
+	return p;
+}

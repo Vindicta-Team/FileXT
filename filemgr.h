@@ -6,6 +6,7 @@ Class which represents whole extension.
 
 #include <map>
 #include <string>
+#include <stdint.h>
 
 namespace filext
 {
@@ -18,6 +19,20 @@ namespace filext
 		unsigned int m_currentGetID;
 		std::string m_currentGetKey;
 	};
+
+#pragma pack(push)
+#pragma pack(4)
+	// File header, written at the top of all files
+#define FILEXT_HEADER_MAGIC_NUMBER 0x00420666
+#define FILEXT_HEADER_VERSION 1
+	struct fileHeader
+	{
+		// These three should always stay same:
+		uint32_t magicNumber;
+		uint32_t size;
+		uint32_t version;
+	};
+#pragma pack(pop)
 
 	class filemgr
 	{

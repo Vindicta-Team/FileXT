@@ -152,6 +152,14 @@ int filext::filemgr::write(const std::string& fName)
 		char endKey[] = { 0 };
 		char endVal[] = { 0, '\n' };
 		if (f.is_open()) {
+			// Write header
+			fileHeader header;
+			header.version = FILEXT_HEADER_VERSION;
+			header.size = sizeof(fileHeader);
+			header.magicNumber = FILEXT_HEADER_MAGIC_NUMBER;
+			f.write((const char*)&header, sizeof(fileHeader));
+
+			// Write data
 			for (auto iter = finfo->m_map.begin(); iter != finfo->m_map.end(); ++iter) {
 				const string* key = &(iter->first);
 				const string* val = &(iter->second);
@@ -190,18 +198,38 @@ int filext::filemgr::read(const std::string& fName)
 
 		ifstream f(finfo->m_fileName, ios_base::in | ios_base::binary);
 		if (f.is_open()) {
+			// Read header
+			LOG(("  Reading header: "));
+			fileHeader header;
+			f.seekg(0);
+			f.read((char*)&header, sizeof(fileHeader));
+			bool magicNumberOk = header.magicNumber == FILEXT_HEADER_MAGIC_NUMBER;
+			LOG(("size: %i, version: %i, magic number ok: %i\n", header.size, header.version, (int)magicNumberOk));
+
+			// Bail if header is wrong
+			if (!magicNumberOk) {
+				LOG(("Error: Magic number mismatch!\n"));
+				return FILEXT_WRONG_FILE_FORMAT;
+			}
+
+			// Bail if version is not supported
+			if (header.version != 1) {
+				LOG(("Error: version is not supported!\n"));
+				return FILEXT_WRONG_FILE_FORMAT;
+			}
+
 			// Read content into RAM
 			LOG(("  File was found in file system. Reading content... \n"));
 			f.seekg(0, std::ios::end);
-			auto fSize = f.tellg();
-			char* fContent = new char[fSize];
-			f.seekg(0, std::ios::beg);
-			f.read(fContent, fSize);
+			unsigned int contentSize = (unsigned int)f.tellg() - header.size;
+			char* fContent = new char[contentSize];
+			f.seekg(header.size);
+			f.read(fContent, contentSize);
 			f.close();
 
 			// Move data to hashmap
 			unsigned int i = 0;
-			while (i < fSize) {
+			while (i < contentSize) {
 				// Find end of key
 				unsigned int iKeyStart = i;
 				while (fContent[i] != 0)
