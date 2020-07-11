@@ -1,5 +1,8 @@
 Push-Location
 
+"Ensure directories.."
+New-Item "_build\@filext" -ItemType Directory
+
 "Copy extra files.."
 
 Copy-Item "Arma mod\mod.cpp" "_build\@filext"

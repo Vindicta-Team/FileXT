@@ -67,7 +67,7 @@ void RVExtension(char* output, int outputSize, const char* function)
 // Macro for asserting correct argument count
 #define ASSERT_EXT_ARGC(argc, argcNeeded) if (argc != argcNeeded)	{ \
 LOG(("Wrong arg count, received: %i, expected: %i\n", argc, argcNeeded)); \
-return FILEXT_WRONG_ARG_COUNT; \
+return FILEXT_ERROR_WRONG_ARG_COUNT; \
 }
 
 /*
@@ -94,7 +94,7 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 		// Check file name
 		// Bail if file name is wrong
 		if (!checkFileName(fileName))
-			return FILEXT_WRONG_FILE_NAME;
+			return FILEXT_ERROR_WRONG_FILE_NAME;
 		fileName = fileStorageFolder + fileName;
 	}
 
@@ -180,7 +180,7 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 		return (int)strlen(data);
 	};
 
-	return FILEXT_WRONG_FUNCTION_NAME;
+	return FILEXT_ERROR_WRONG_FUNCTION_NAME;
 }
 
 void RVExtensionVersion(char* output, int outputSize)

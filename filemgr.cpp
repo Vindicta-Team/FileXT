@@ -81,7 +81,7 @@ int filext::filemgr::set(const std::string& fName, const char* key, const char* 
 	} else {
 		LOG(("  File is not open\n"));
 		// Return error
-		return FILEXT_FILE_NOT_OPEN;
+		return FILEXT_ERROR_FILE_NOT_OPEN;
 	};
 }
 
@@ -129,12 +129,12 @@ int filext::filemgr::get(const std::string& fName, const char* key, string& outV
 			}
 		} else {
 			LOG(("  Key %s was not found\n", key));
-			return FILEXT_KEY_NOT_FOUND;
+			return FILEXT_ERROR_KEY_NOT_FOUND;
 		}
 	} else {
 		LOG(("  File is not open\n"));
 		// Return error
-		return FILEXT_FILE_NOT_OPEN;
+		return FILEXT_ERROR_FILE_NOT_OPEN;
 	}
 }
 
@@ -175,13 +175,13 @@ int filext::filemgr::write(const std::string& fName)
 		}
 		else {
 			LOG(("    Error writing file: file is not open\n"));
-			return FILEXT_WRITE_ERROR;
+			return FILEXT_ERROR_WRITE;
 		}
 
 	} else {
 		LOG(("  File is not open\n"));
 		// Return error
-		return FILEXT_FILE_NOT_OPEN;
+		return FILEXT_ERROR_FILE_NOT_OPEN;
 	}
 	return 0;
 }
@@ -209,13 +209,13 @@ int filext::filemgr::read(const std::string& fName)
 			// Bail if header is wrong
 			if (!magicNumberOk) {
 				LOG(("Error: Magic number mismatch!\n"));
-				return FILEXT_WRONG_FILE_FORMAT;
+				return FILEXT_ERROR_WRONG_FILE_FORMAT;
 			}
 
 			// Bail if version is not supported
 			if (header.version != 1) {
 				LOG(("Error: version is not supported!\n"));
-				return FILEXT_WRONG_FILE_FORMAT;
+				return FILEXT_ERROR_WRONG_FILE_FORMAT;
 			}
 
 			// Read content into RAM
@@ -257,13 +257,13 @@ int filext::filemgr::read(const std::string& fName)
 		}
 		else {
 			LOG(("    Error reading file: file is not open\n"));
-			return FILEXT_READ_ERROR;
+			return FILEXT_ERROR_READ;
 		};
 
 
 	} else {
 		LOG(("  File is not open\n"));
 		// Return error
-		return FILEXT_FILE_NOT_OPEN;
+		return FILEXT_ERROR_FILE_NOT_OPEN;
 	}
 }
