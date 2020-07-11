@@ -118,6 +118,7 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 	// ["", ["get", fileName, key, reset(0/1)]]
 	if (strcmp(functionName, "\"get\"") == 0) {
 		ASSERT_EXT_ARGC(argc, 4)
+		outputSize -= 4; // Just to be safe...
 		std::string strOut("");
 		int reset = 0;
 		try {
@@ -125,7 +126,7 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 		} catch ( ... ) {
 			reset = 0;
 		}
-		int retInt = gFileMgr.get(fileName, argv[2], strOut, 3, (bool)reset);
+		int retInt = gFileMgr.get(fileName, argv[2], strOut, outputSize, (bool)reset);
 		strcpy_s(output, outputSize - 1, strOut.c_str());
 		return retInt;
 	};
