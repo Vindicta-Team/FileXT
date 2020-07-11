@@ -30,11 +30,12 @@ class CfgFunctions
       class get { headerType = -1; };
 	  class set { headerType = -1; };
 	  class open { headerType = -1; };
-	  class close { headerType = -1; };
 	  class read { headerType = -1; };
+	  class close { headerType = -1; };
 	  class write { headerType = -1; };
 	  class error { headerType = -1; };
 	  class getFiles { headerType = -1; };
+	  class deleteFile { headerType = -1; };
 	  class test {};
     };
   };

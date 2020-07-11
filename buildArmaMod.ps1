@@ -1,7 +1,7 @@
 Push-Location
 
 "Ensure directories.."
-New-Item "_build\@filext" -ItemType Directory
+New-Item "_build\@filext" -ItemType Directory -Force
 
 "Copy extra files.."
 

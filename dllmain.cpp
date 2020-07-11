@@ -166,6 +166,16 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 		return 0;
 	};
 
+	// ["", ["read", fileName]]
+	if (strcmp(functionName, "\"deleteFile\"") == 0) {
+		try {
+			filesystem::remove(fileName);
+		} catch (...) {
+			return FILEXT_ERROR_WRONG_FILE_NAME;
+		}
+		return FILEXT_SUCCESS;
+	};
+
 	// ["testDataToCopy", ["loopback"]]
 	if (strcmp(functionName, "\"loopback\"") == 0) {
 		ASSERT_EXT_ARGC(argc, 1)
