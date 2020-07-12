@@ -1,4 +1,4 @@
-#FileXT
+# FileXT
 
 This is an Arma extension which lets you store and read data in files from SQF.
 
