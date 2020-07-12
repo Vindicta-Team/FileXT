@@ -12,6 +12,10 @@ filext::filemgr gFileMgr;
 string dllFolder;
 string fileStorageFolder;
 
+#ifdef _DEBUG
+FILE* gLogFile;
+#endif
+
 bool checkFileName(string& fileName);
 string getDllFolder();
 
@@ -24,15 +28,14 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     {
 
     case DLL_PROCESS_ATTACH:
-		// Allocate console
+		// Open log file
 #ifdef _DEBUG
-		::AllocConsole();
-		freopen_s((FILE**)stdout, "CONOUT$", "w", stdout);
-		LOG(("DLL Attached\n"));
+		fopen_s(&gLogFile, "filext_log.log", "w");
+		fprintf(gLogFile, "Log file print test: %i\n", 123);
 #endif
 		// Resolve path to this dll
 		dllFolder = getDllFolder();
-		LOG(("DLL path: %s\n", dllFolder.c_str()));
+		LOG_1("DLL path: %s\n", dllFolder.c_str());
 		fileStorageFolder = dllFolder + string("storage\\");
 
 		// Ensure that there is a folder for filext files
@@ -61,12 +64,12 @@ extern "C"
 void RVExtension(char* output, int outputSize, const char* function)
 {
 	strcpy_s(output, outputSize-1, function);
-	LOG(("Function called: %s\n", function));
+	LOG_1("Function called: %s\n", function);
 }
 
 // Macro for asserting correct argument count
 #define ASSERT_EXT_ARGC(argc, argcNeeded) if (argc != argcNeeded)	{ \
-LOG(("Wrong arg count, received: %i, expected: %i\n", argc, argcNeeded)); \
+LOG_2("Wrong arg count, received: %i, expected: %i\n", argc, argcNeeded); \
 return FILEXT_ERROR_WRONG_ARG_COUNT; \
 }
 
@@ -89,7 +92,7 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 		fileName = string(argv[1]);
 		fileName.erase(0, 1);
 		fileName.pop_back();
-		//LOG(("Argc: %i\n", argc));
+		//LOG_1("Argc: %i\n", argc);
 
 		// Check file name
 		// Bail if file name is wrong
@@ -98,7 +101,7 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 		fileName = fileStorageFolder + fileName;
 	}
 
-	LOG(("RVExtensionArgs: function: %s, fileName: %s, outputSize: %i\n", functionName, fileName.c_str(), outputSize));
+	LOG_3("RVExtensionArgs: function: %s, fileName: %s, outputSize: %i\n", functionName, fileName.c_str(), outputSize);
 
 	// Resolve function name
 
@@ -129,7 +132,6 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 	// ["", ["get", fileName, key, reset(0/1)]]
 	if (strcmp(functionName, "\"get\"") == 0) {
 		ASSERT_EXT_ARGC(argc, 4);
-		outputSize -= 4; // Just to be safe...
 		std::string strOut("");
 		int reset = 0;
 		try {
@@ -137,7 +139,8 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 		} catch ( ... ) {
 			reset = 0;
 		}
-		int retInt = gFileMgr.get(fileName, argv[2], strOut, outputSize, (bool)reset);
+		int retInt = gFileMgr.get(fileName, argv[2], strOut, outputSize-4, (bool)reset); // Just to be safe, reduce size a bit
+		LOG_1("  Returning string of size: %i\n", (unsigned int)strOut.size());
 		strcpy_s(output, outputSize - 1, strOut.c_str());
 		return retInt;
 	};
@@ -148,6 +151,12 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 		return gFileMgr.set(fileName, argv[2], data);
 	};
 
+	// ["", ["eraseKey", fileName, key]]
+	if (strcmp(functionName, "\"eraseKey\"") == 0) {
+		ASSERT_EXT_ARGC(argc, 3);
+		return gFileMgr.eraseKey(fileName, argv[2]);
+	};
+
 	// ["", ["getFiles"]]
 	if (strcmp(functionName, "\"getFiles\"") == 0) {
 		ASSERT_EXT_ARGC(argc, 1);
@@ -156,7 +165,7 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 		for (const auto& entry : filesystem::directory_iterator(fileStorageFolder)) {
 			string fileName = entry.path().filename().string();
 			vectorFileNamesSQF.push_back(sqf::value(fileName));
-			LOG(("File: %s\n", fileName.c_str()));
+			LOG_1("File: %s\n", fileName.c_str());
 		}
 		
 		sqf::value fileNamesSQFArray(vectorFileNamesSQF);
@@ -166,7 +175,7 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 		return 0;
 	};
 
-	// ["", ["read", fileName]]
+	// ["", ["deleteFile", fileName]]
 	if (strcmp(functionName, "\"deleteFile\"") == 0) {
 		try {
 			filesystem::remove(fileName);
@@ -174,6 +183,14 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 			return FILEXT_ERROR_WRONG_FILE_NAME;
 		}
 		return FILEXT_SUCCESS;
+	};
+
+	// ["", ["fileExists", fileName]]
+	if (strcmp(functionName, "\"fileExists\"") == 0) {
+		if (filesystem::exists(fileName))
+			return FILEXT_SUCCESS;
+		else
+			return FILEXT_ERROR_WRONG_FILE_NAME;
 	};
 
 	// ["testDataToCopy", ["loopback"]]
@@ -186,7 +203,7 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 	// ["testData", ["dummy"]]
 	if (strcmp(functionName, "\"dummy\"") == 0) {
 		ASSERT_EXT_ARGC(argc, 1)
-		LOG(("Data length: %i", (int)strlen(data)));
+		LOG_1("Data length: %i", (int)strlen(data));
 		return (int)strlen(data);
 	};
 
@@ -208,7 +225,7 @@ bool checkFileName(string& fileName) {
 		return false;
 
 	// Check forbidden characters
-	string forbiddenChars("\\/?%*:|\"<>,;=");
+	string forbiddenChars("\\/?*:|\"<>,;=");
 	if (fileName.find_first_of(forbiddenChars) != string::npos)
 		return false;
 
@@ -228,7 +245,7 @@ std::string getDllFolder()
 		(LPCSTR)getDllFolder,
 		&hm))
 	{
-		LOG(("error: GetModuleHandle returned %i", GetLastError()));
+		LOG_1("error: GetModuleHandle returned %i", GetLastError());
 		return std::string("");
 	}
 

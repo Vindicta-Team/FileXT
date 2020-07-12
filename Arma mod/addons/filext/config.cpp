@@ -19,6 +19,9 @@ class CfgPatches
 	};
 };
 
+// Content of function class if we ever want to change it
+#define __FNC_CLASS_CONTENT headerType = -1;
+
 class CfgFunctions
 {
   class filext
@@ -27,15 +30,21 @@ class CfgFunctions
     {
       tag = "filext";
 	  file = "filext\functions";
-      class get { headerType = -1; };
-	  class set { headerType = -1; };
-	  class open { headerType = -1; };
-	  class read { headerType = -1; };
-	  class close { headerType = -1; };
-	  class write { headerType = -1; };
-	  class error { headerType = -1; };
-	  class getFiles { headerType = -1; };
-	  class deleteFile { headerType = -1; };
+      class get { __FNC_CLASS_CONTENT };
+	  class set { __FNC_CLASS_CONTENT };
+	  class eraseKey { __FNC_CLASS_CONTENT };
+
+	  class open { __FNC_CLASS_CONTENT };
+	  class read { __FNC_CLASS_CONTENT };
+	  class close { __FNC_CLASS_CONTENT };
+	  class write { __FNC_CLASS_CONTENT };
+
+	  class error { __FNC_CLASS_CONTENT };
+
+	  class getFiles { __FNC_CLASS_CONTENT };
+	  class deleteFile { __FNC_CLASS_CONTENT };
+	  class fileExists { __FNC_CLASS_CONTENT };
+	  
 	  class test {};
     };
   };

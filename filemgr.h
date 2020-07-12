@@ -41,6 +41,7 @@ namespace filext
 		int close(const std::string& fName);
 		int set(const std::string& fName, const char* key, const char* value);
 		int get(const std::string& fName, const char* key, std::string& outValue, unsigned int outputSize, bool reset);
+		int eraseKey(const std::string& fName, const char* key);
 		int write(const std::string& fName);
 		int read(const std::string& fName);
 
