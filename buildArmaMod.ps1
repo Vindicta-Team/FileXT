@@ -9,6 +9,7 @@ Copy-Item "Arma mod\mod.cpp" "_build\@filext"
 
 "Copy DLLs..."
 Copy-Item "x64\Release\filext_x64.dll" "_build\@filext"
+Copy-Item "Release\filext.dll" "_build\@filext"
 
 "Build pbos..."
 $addonBuilderLoc = "C:\Program Files (x86)\Steam\steamapps\common\Arma 3 Tools\AddonBuilder"

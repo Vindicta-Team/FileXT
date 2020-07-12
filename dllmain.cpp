@@ -56,15 +56,8 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
 extern "C"
 {
-	__declspec(dllexport) void __stdcall RVExtension(char* output, int outputSize, const char* function);
 	__declspec(dllexport) int __stdcall RVExtensionArgs(char* output, int outputSize, const char* function, const char** argv, int argc);
 	__declspec(dllexport) void __stdcall RVExtensionVersion(char* output, int outputSize);
-}
-
-void RVExtension(char* output, int outputSize, const char* function)
-{
-	strcpy_s(output, outputSize-1, function);
-	LOG_1("Function called: %s\n", function);
 }
 
 // Macro for asserting correct argument count
@@ -80,7 +73,7 @@ because all strings passed through argv are wrapped into extra quotes - they are
 callExtension arguments are:
 [(value), [function, (fileName), (key)]]
 */
-int RVExtensionArgs(char* output, int outputSize, const char* function, const char** argv, int argc)
+__declspec(dllexport) int __stdcall RVExtensionArgs(char* output, int outputSize, const char* function, const char** argv, int argc)
 {
 	// Extract function name
 	const char* functionName = argv[0];
@@ -193,24 +186,10 @@ int RVExtensionArgs(char* output, int outputSize, const char* function, const ch
 			return FILEXT_ERROR_WRONG_FILE_NAME;
 	};
 
-	// ["testDataToCopy", ["loopback"]]
-	if (strcmp(functionName, "\"loopback\"") == 0) {
-		ASSERT_EXT_ARGC(argc, 1)
-		strcpy_s(output, outputSize-1, data);
-		return 0;
-	};
-
-	// ["testData", ["dummy"]]
-	if (strcmp(functionName, "\"dummy\"") == 0) {
-		ASSERT_EXT_ARGC(argc, 1)
-		LOG_1("Data length: %i", (int)strlen(data));
-		return (int)strlen(data);
-	};
-
 	return FILEXT_ERROR_WRONG_FUNCTION_NAME;
 }
 
-void RVExtensionVersion(char* output, int outputSize)
+__declspec(dllexport) void __stdcall RVExtensionVersion(char* output, int outputSize)
 {
 	strcpy_s(output, outputSize-1, "Filext 1.0");
 }
