@@ -6,11 +6,8 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_library(FileXT SHARED 
    src/dllmain.cpp
-   src/errorCodes.h
    src/filemgr.cpp
-   src/framework.h
    src/pch.cpp
-   src/value.h
 )
 
 if(${WIN32})
