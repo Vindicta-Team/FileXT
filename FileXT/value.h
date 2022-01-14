@@ -21,6 +21,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE  *
  * SOFTWARE.                                                                      *
  **********************************************************************************/
+ /**
+ *  Modifications:
+ *
+ * Jan 14 2022 (xoorath): Linux Port
+ *     Changed as<T> functions to named functions (like: asFloat)
+ *     The inline declarations previously used a non-compliant feature of msvc.
+ *     See: https://stackoverflow.com/questions/3052579/explicit-specialization-in-non-namespace-scope/3052604#3052604
+ *    (This was a quick solution, not the only nor best fix)
+ */
 
 #pragma once
 #include <string>
@@ -61,17 +70,16 @@ namespace sqf
 		value(std::vector<value> array) : m_type(value_type::Array), m_variant(array) {}
 		value(std::initializer_list<value> initializer) : m_type(value_type::Array), m_variant(std::vector(initializer.begin(), initializer.end())) {}
 
-		template<typename T> inline T as() { static_assert(false, "Invalid input type"); }
-		template<> inline float as() { if (m_type != value_type::Scalar) { m_variant = float{}; } return std::get<float>(m_variant); }
-		template<> inline bool as() { if (m_type != value_type::Boolean) { m_variant = bool{}; } return std::get<bool>(m_variant); }
-		template<> inline std::string as() { if (m_type != value_type::String) { m_variant = std::string{}; } return std::get<std::string>(m_variant); }
-		template<> inline std::vector<value>& as() { if (m_type != value_type::Array) { m_variant = std::vector<sqf::value>{}; } return std::get<std::vector<sqf::value>>(m_variant); }
+		inline float asFloat() { if (m_type != value_type::Scalar) { m_variant = float{}; } return std::get<float>(m_variant); }
+		inline bool asBool() { if (m_type != value_type::Boolean) { m_variant = bool{}; } return std::get<bool>(m_variant); }
+		inline std::string asString() { if (m_type != value_type::String) { m_variant = std::string{}; } return std::get<std::string>(m_variant); }
+		inline std::vector<value>& asVector() { if (m_type != value_type::Array) { m_variant = std::vector<sqf::value>{}; } return std::get<std::vector<sqf::value>>(m_variant); }
 
-		template<typename T> inline T as() const { static_assert(false, "Invalid input type"); }
-		template<> inline float as() const { if (m_type == value_type::Scalar) { return std::get<float>(m_variant); } return 0; }
-		template<> inline bool as() const { if (m_type == value_type::Boolean) { return std::get<bool>(m_variant); } return false; }
-		template<> inline std::string as() const { if (m_type == value_type::String) { return std::get<std::string>(m_variant); } return {}; }
-		template<> inline std::vector<value> as() const { if (m_type == value_type::Array) { return std::get<std::vector<sqf::value>>(m_variant); } return {}; }
+		inline float asFloat() const { if (m_type == value_type::Scalar) { return std::get<float>(m_variant); } return 0; }
+		inline bool asBool() const { if (m_type == value_type::Boolean) { return std::get<bool>(m_variant); } return false; }
+		inline std::string asString() const { if (m_type == value_type::String) { return std::get<std::string>(m_variant); } return {}; }
+		inline std::vector<value> asVector() const { if (m_type == value_type::Array) { return std::get<std::vector<sqf::value>>(m_variant); } return {}; }
+
 
         // Tests two sqf::value's for equality.
         // If they are arrays, comparison is executed deep.
@@ -82,9 +90,9 @@ namespace sqf
             switch (m_type)
             {
             case value_type::Nil: return true;
-            case value_type::Boolean: return as<bool>() == other.as<bool>();
-            case value_type::Scalar: return as<float>() == other.as<float>();
-            case value_type::String: return as<std::string>() == other.as<std::string>();
+            case value_type::Boolean: return asBool() == other.asBool();
+            case value_type::Scalar: return asFloat() == other.asFloat();
+            case value_type::String: return asString() == other.asString();
             case value_type::Array:
                 auto& a = std::get<std::vector<value>>(m_variant);
                 auto& b = std::get<std::vector<value>>(other.m_variant);
@@ -101,8 +109,8 @@ namespace sqf
             switch (m_type)
             {
             case value_type::Nil: return true;
-            case value_type::Boolean: return as<bool>() == other.as<bool>();
-            case value_type::Scalar: return as<float>() == other.as<float>();
+            case value_type::Boolean: return asBool() == other.asBool();
+            case value_type::Scalar: return asFloat() == other.asFloat();
             case value_type::String:
             {
                 auto& a = std::get<std::string>(m_variant);
@@ -133,33 +141,33 @@ namespace sqf
         bool operator!=(const value& other) const { return !equals(other); }
         bool operator==(const value& other) const { return equals(other); }
         bool operator!=(const std::string& other) const { return !(*this == other); }
-        bool operator==(const std::string& other) const { if (m_type != value_type::String) { return false; } return other == as<std::string>(); }
+        bool operator==(const std::string& other) const { if (m_type != value_type::String) { return false; } return other == asString(); }
         bool operator!=(const char* other) const { return *this != std::string(other); }
         bool operator==(const char* other) const { return *this == std::string(other); }
         bool operator!=(float other) const { return !(*this == other); }
-        bool operator==(float other) const { if (m_type != value_type::Scalar) { return false; } return other == as<float>(); }
-        bool operator<=(float other) const { if (m_type != value_type::Scalar) { return false; } return other <= as<float>(); }
-        bool operator< (float other) const { if (m_type != value_type::Scalar) { return false; } return other <  as<float>(); }
-        bool operator>=(float other) const { if (m_type != value_type::Scalar) { return false; } return other >= as<float>(); }
-        bool operator> (float other) const { if (m_type != value_type::Scalar) { return false; } return other >  as<float>(); }
-        bool operator==(double other) const { if (m_type != value_type::Scalar) { return false; } return ((float)other) == as<float>(); }
-        bool operator<=(double other) const { if (m_type != value_type::Scalar) { return false; } return ((float)other) <= as<float>(); }
-        bool operator< (double other) const { if (m_type != value_type::Scalar) { return false; } return ((float)other) <  as<float>(); }
-        bool operator>=(double other) const { if (m_type != value_type::Scalar) { return false; } return ((float)other) >= as<float>(); }
-        bool operator> (double other) const { if (m_type != value_type::Scalar) { return false; } return ((float)other) >  as<float>(); }
+        bool operator==(float other) const { if (m_type != value_type::Scalar) { return false; } return other == asFloat(); }
+        bool operator<=(float other) const { if (m_type != value_type::Scalar) { return false; } return other <= asFloat(); }
+        bool operator< (float other) const { if (m_type != value_type::Scalar) { return false; } return other <  asFloat(); }
+        bool operator>=(float other) const { if (m_type != value_type::Scalar) { return false; } return other >= asFloat(); }
+        bool operator> (float other) const { if (m_type != value_type::Scalar) { return false; } return other >  asFloat(); }
+        bool operator==(double other) const { if (m_type != value_type::Scalar) { return false; } return ((float)other) == asFloat(); }
+        bool operator<=(double other) const { if (m_type != value_type::Scalar) { return false; } return ((float)other) <= asFloat(); }
+        bool operator< (double other) const { if (m_type != value_type::Scalar) { return false; } return ((float)other) <  asFloat(); }
+        bool operator>=(double other) const { if (m_type != value_type::Scalar) { return false; } return ((float)other) >= asFloat(); }
+        bool operator> (double other) const { if (m_type != value_type::Scalar) { return false; } return ((float)other) >  asFloat(); }
         // bool operator!=(bool other) const { return !(*this == other); }
-        // bool operator==(bool other) const { if (m_type != value_type::Boolean) { return false; } return other == as<bool>(); }
-        bool operator&&(bool other) const { if (m_type != value_type::Boolean) { return false; } return other && as<bool>(); }
-        bool operator||(bool other) const { if (m_type != value_type::Boolean) { return false; } return other || as<bool>(); }
+        // bool operator==(bool other) const { if (m_type != value_type::Boolean) { return false; } return other == asBool(); }
+        bool operator&&(bool other) const { if (m_type != value_type::Boolean) { return false; } return other && asBool(); }
+        bool operator||(bool other) const { if (m_type != value_type::Boolean) { return false; } return other || asBool(); }
 
-		explicit operator float() { return as<float>(); }
-		explicit operator bool() { return as<bool>(); }
-		explicit operator std::string() { return as<std::string>(); }
+		explicit operator float() { return asFloat(); }
+		explicit operator bool() { return asBool(); }
+		explicit operator std::string() { return asString(); }
 
-		explicit operator float() const { return as<float>(); }
-		explicit operator bool() const { return as<bool>(); }
-		explicit operator std::string() const { return as<std::string>(); }
-		explicit operator std::vector<value>() const { return as<std::vector<value>>(); }
+		explicit operator float() const { return asFloat(); }
+		explicit operator bool() const { return asBool(); }
+		explicit operator std::string() const { return asString(); }
+		explicit operator std::vector<value>() const { return asVector(); }
 
         // Checks if this sqf::value is an array
 		bool is_array() const { return m_type == value_type::Array; }

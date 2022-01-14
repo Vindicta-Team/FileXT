@@ -32,3 +32,8 @@ Requirements:
     * Update your packages with `sudo apt update && sudo apt upgrade` (*this runs in your linux command prompt*)
     * Install the dev tools with `sudo apt install g++ gdb make ninja-build rsync zip` (*this runs in your linux command prompt*)
 
+Open the project **directory** in visual studio (ie: right click in the project root and open with visual studio). This will use CMakePresets.json to configure the generator (ninja) and target (Linux).
+
+Next in the standard toolbar you should be able to select `WSL: <distro>` and Debug or Release (pictured below). If WSL is not present you may not have correctly satisfied the requirements section of this document, or you may have to restart Visual Studio or your computer.
+
+![WSL Toolbar](images/wsl-toolbar.png)

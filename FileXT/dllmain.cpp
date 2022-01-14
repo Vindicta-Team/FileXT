@@ -5,6 +5,11 @@
 #include "filemgr.h"
 #include "value.h"
 
+
+#if !defined(_MSC_VER)
+#include <dlfcn.h>
+#endif
+
 using namespace std;
 
 // Globals
@@ -19,15 +24,8 @@ FILE* gLogFile;
 bool checkFileName(string& fileName);
 string getDllFolder();
 
-BOOL APIENTRY DllMain( HMODULE hModule,
-                       DWORD  ul_reason_for_call,
-                       LPVOID lpReserved
-                     )
-{
-    switch (ul_reason_for_call)
-    {
-
-    case DLL_PROCESS_ATTACH:
+static struct FileXTEntryPoint {
+	FileXTEntryPoint() {
 		// Open log file
 #ifdef _DEBUG
 		fopen_s(&gLogFile, "filext_log.log", "w");
@@ -42,28 +40,35 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		if (!filesystem::exists(fileStorageFolder)) {
 			filesystem::create_directory(fileStorageFolder);
 		}
-		break;
+	}
 
+} g_FileXTEntryPoint;
 
-
-    case DLL_THREAD_ATTACH:
-    case DLL_THREAD_DETACH:
-    case DLL_PROCESS_DETACH:
-        break;
-    }
-    return TRUE;
+#ifdef _MSC_VER
+BOOL APIENTRY DllMain(HMODULE hModule,
+	DWORD  ul_reason_for_call,
+	LPVOID lpReserved
+)
+{
+	return TRUE;
 }
+#endif
 
 extern "C"
 {
-	__declspec(dllexport) int __stdcall RVExtensionArgs(char* output, int outputSize, const char* function, const char** argv, int argc);
-	__declspec(dllexport) void __stdcall RVExtensionVersion(char* output, int outputSize);
+	FILEXT_EXPORT int FILEXT_CALL RVExtensionArgs(char* output, int outputSize, const char* function, const char** argv, int argc);
+	FILEXT_EXPORT void FILEXT_CALL RVExtensionVersion(char* output, int outputSize);
 }
 
 // Macro for asserting correct argument count
 #define ASSERT_EXT_ARGC(argc, argcNeeded) if (argc != argcNeeded)	{ \
 LOG_2("Wrong arg count, received: %i, expected: %i\n", argc, argcNeeded); \
 return FILEXT_ERROR_WRONG_ARG_COUNT; \
+}
+
+#define ASSERT_BUFFER_SIZE(maxSize, givenSize) if(givenSize > maxSize) {\
+LOG_2("Buffer size is too small. Max size: %i, size: %i.", maxSize, givenSize);\
+return FILEXT_ERROR_BUFFER_TOO_SMALL; \
 }
 
 /*
@@ -73,7 +78,7 @@ because all strings passed through argv are wrapped into extra quotes - they are
 callExtension arguments are:
 [(value), [function, (fileName), (key)]]
 */
-__declspec(dllexport) int __stdcall RVExtensionArgs(char* output, int outputSize, const char* function, const char** argv, int argc)
+FILEXT_EXPORT int FILEXT_CALL RVExtensionArgs(char* output, int outputSize, const char* function, const char** argv, int argc)
 {
 	// Extract function name
 	const char* functionName = argv[0];
@@ -134,7 +139,8 @@ __declspec(dllexport) int __stdcall RVExtensionArgs(char* output, int outputSize
 		}
 		int retInt = gFileMgr.get(fileName, argv[2], strOut, outputSize-4, (bool)reset); // Just to be safe, reduce size a bit
 		LOG_1("  Returning string of size: %i\n", (unsigned int)strOut.size());
-		strcpy_s(output, outputSize - 1, strOut.c_str());
+		ASSERT_BUFFER_SIZE((int)outputSize -1, (int)strOut.size());
+		strcpy(output, strOut.c_str());
 		return retInt;
 	};
 
@@ -164,7 +170,8 @@ __declspec(dllexport) int __stdcall RVExtensionArgs(char* output, int outputSize
 		sqf::value fileNamesSQFArray(vectorFileNamesSQF);
 		string strOut = fileNamesSQFArray.to_string();
 
-		strcpy_s(output, outputSize - 1, strOut.c_str());
+		ASSERT_BUFFER_SIZE((int)outputSize - 1, (int)strOut.size());
+		strcpy(output, strOut.c_str());
 		return 0;
 	};
 
@@ -189,9 +196,16 @@ __declspec(dllexport) int __stdcall RVExtensionArgs(char* output, int outputSize
 	return FILEXT_ERROR_WRONG_FUNCTION_NAME;
 }
 
-__declspec(dllexport) void __stdcall RVExtensionVersion(char* output, int outputSize)
+FILEXT_EXPORT void FILEXT_CALL RVExtensionVersion(char* output, int outputSize)
 {
-	strcpy_s(output, outputSize-1, "Filext 1.0");
+	std::string versionString = "Filext 1.1";
+	if(versionString.size() > outputSize - 1) {
+		LOG_2("Buffer size is too small. Max size: %i, size: %i.", (int)outputSize - 1, (int)versionString.size()); \
+	}
+	else
+	{
+		strcpy(output, versionString.c_str());
+	}
 }
 
 // Ensures that the file name is correct:
@@ -213,9 +227,11 @@ bool checkFileName(string& fileName) {
 }
 
 
-// Borrowed from https://gist.github.com/pwm1234/05280cf2e462853e183d
 std::string getDllFolder()
 {
+#ifdef _MSC_VER
+	// Borrowed from https://gist.github.com/pwm1234/05280cf2e462853e183d
+
 	char path[FILENAME_MAX];
 	HMODULE hm = NULL;
 
@@ -235,4 +251,9 @@ std::string getDllFolder()
 	auto pos = p.rfind('\\');
 	p.erase(pos + 1, p.size());
 	return p;
+#else 
+	Dl_info dl_info;
+	dladdr((void*)getDllFolder, &dl_info);
+	return std::string(dl_info.dli_fname);
+#endif
 }
