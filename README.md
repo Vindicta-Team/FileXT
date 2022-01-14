@@ -2,8 +2,33 @@
 
 This is an Arma extension which lets you store and read data in files from SQF.
 
-Currently only works on x86 and x64 Windows.
+For usage examples, refer to the [wiki page](https://github.com/Vindicta-Team/FileXT/wiki).
 
-For usage examples, refer to the [Wiki Page](https://github.com/Vindicta-Team/FileXT/wiki)
+You can download it from the [Steam workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=2162811561).
 
-You can download it at [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=2162811561)
+# Compiling
+
+Requirements:
+* [CMake](https://cmake.org/) to generate project files.
+
+## Compiling for Windows
+
+Requirements:
+* [Visual Studio 2019](https://visualstudio.microsoft.com/vs/older-downloads/) 
+
+Run `VS2019.bat` from the project root to generate a Visual Studio 2019 solution.
+
+# Compiling for Linux on Windows
+
+Requirements:
+* Linux development for C++ (from the Visual Studio installer)
+* Windows Subsystem for Linux
+    * Enable virtualization in your system bios (this differs per motherboard)
+    * Enable Hyper-V in windows features. (search "Windows Features" in the start menu)
+    * Install windows subsytem for linux (run `wsl --install` in an admin command prompt)
+    * Reccomended: Install Ubuntu from the windows store. 
+        * Alternatively you can install distributions from the wsl command as well with `wsl --install -d <distrobution name>`. Valid distribution names can be listed with `wsl.exe -l -o`
+* Development tools for linux
+    * Update your packages with `sudo apt update && sudo apt upgrade` (*this runs in your linux command prompt*)
+    * Install the dev tools with `sudo apt install g++ gdb make ninja-build rsync zip` (*this runs in your linux command prompt*)
+
