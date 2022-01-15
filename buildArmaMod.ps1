@@ -68,7 +68,7 @@ Copy-Item "Arma mod/mod.cpp" "_build/@filext"
 "Copy DLLs..."
 Copy-Item "Build_Win64/Release/filext.dll" "_build/@filext/filext_x64.dll"
 Copy-Item "Build_Win32/Release/filext.dll" "_build/@filext/filext.dll"
-Copy-Item "Build_Linux/linux-release/libFileXT.so" "_build/@filext/libFileXT.so"
+Copy-Item "Build_Linux/libFileXT.so" "_build/@filext/libFileXT.so"
 
 "Build pbos..."
 [string]$arma3ToolsPath = Get-Arma3ToolsPath
@@ -87,6 +87,8 @@ Copy-Item "Build_Linux/linux-release/libFileXT.so" "_build/@filext/libFileXT.so"
     "-prefix=`"filext`""
 )
 Start-Process -FilePath $addonBuilderPath -ArgumentList $addonBuilderArgs -NoNewWindow -Wait
+
+Compress-Archive -Path "$thisLoc/_build/@filext" -DestinationPath "$thisLoc/filext.zip"
 
 Pop-Location
 

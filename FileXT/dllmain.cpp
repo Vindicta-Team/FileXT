@@ -198,9 +198,16 @@ FILEXT_EXPORT int FILEXT_CALL RVExtensionArgs(char* output, int outputSize, cons
 
 FILEXT_EXPORT void FILEXT_CALL RVExtensionVersion(char* output, int outputSize)
 {
+	if(outputSize <=0 || output == nullptr)
+	{
+		LOG("Invalid buffer");
+	}
+	
 	std::string versionString = "Filext 1.1";
-	if(versionString.size() > outputSize - 1) {
-		LOG_2("Buffer size is too small. Max size: %i, size: %i.", (int)outputSize - 1, (int)versionString.size()); \
+
+	if(versionString.size() > (size_t)outputSize - 1)
+	{
+		LOG_2("Buffer size is too small. Max size: %i, size: %i.", (int)outputSize - 1, (int)versionString.size());
 	}
 	else
 	{

@@ -370,3 +370,6 @@ FodyWeavers.xsd
 _build/*
 Build
 Build_*
+filext.zip
+Build_Linux
+CMakeFiles

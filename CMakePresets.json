@@ -21,7 +21,7 @@
             "displayName": "Linux Release",
             "description": "Target the Windows Subsystem for Linux (WSL) or a remote Linux system.",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/Build_Linux/${presetName}",
+            "binaryDir": "${sourceDir}/Build_Linux/",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/Build_Linux/install/${presetName}"
