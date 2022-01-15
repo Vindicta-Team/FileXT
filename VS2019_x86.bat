@@ -2,8 +2,8 @@
 SETLOCAL ENABLEDELAYEDEXPANSION
 
 REM Build is where we will generate project files and compile the program into.
-IF NOT EXIST Build/ (
-    MKDIR Build
+IF NOT EXIST Build_Win32/ (
+    MKDIR Build_Win32
 )
 
 REM First we check if we have cmake installed at path.
@@ -29,6 +29,6 @@ SET cmake=cmake
 REM fallthrough intentionally to running cmake.
 :RUN_CMAKE
 
-PUSHD Build
-%cmake% .. -G "Visual Studio 16 2019"
+PUSHD Build_Win32
+%cmake% .. -G "Visual Studio 16 2019" -A Win32
 POPD

@@ -18,7 +18,7 @@ Requirements:
 
 Run `VS2019.bat` from the project root to generate a Visual Studio 2019 solution.
 
-# Compiling for Linux on Windows
+## Compiling for Linux on Windows
 
 Requirements:
 * Linux development for C++ (from the Visual Studio installer)

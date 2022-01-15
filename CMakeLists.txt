@@ -16,3 +16,8 @@ target_precompile_headers(FileXT
 )
 
 set_property(TARGET FileXT PROPERTY CXX_STANDARD 17)
+
+# This option set in CMakePresets.json is specifically for linux x86 support.
+if (DEFINED FILEXT_X86)
+    set_target_properties(FileXT PROPERTIES COMPILE_OPTIONS "-m32" LINK_FLAGS "-m32")
+endif (DEFINED FILEXT_X86)
