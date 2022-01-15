@@ -88,8 +88,6 @@ Copy-Item "Build_Linux/libFileXT.so" "_build/@filext/libFileXT.so"
 )
 Start-Process -FilePath $addonBuilderPath -ArgumentList $addonBuilderArgs -NoNewWindow -Wait
 
-Compress-Archive -Path "$thisLoc/_build/@filext" -DestinationPath "$thisLoc/filext.zip"
-
 Pop-Location
 
 "`n`nDone!"
