@@ -16,7 +16,7 @@ Requirements:
 Requirements:
 * [Visual Studio 2019](https://visualstudio.microsoft.com/vs/older-downloads/) 
 
-Run `VS2019.bat` from the project root to generate a Visual Studio 2019 solution.
+Run `VS2019_x64.bat` or `VS2019_x86.bat` from the project root to generate a Visual Studio 2019 solution.
 
 ## Compiling for Linux on Windows
 
@@ -38,6 +38,16 @@ Next in the standard toolbar you should be able to select `WSL: <distro>` and De
 
 ![WSL Toolbar](images/wsl-toolbar.png)
 
-You may have to select the directory in the solution explorer before those options are available:
+You may have to select the directory in the solution explorer before those options are available. This feature of visual studio is at the time of writing a little buggy, clicking around and possibly resaving the CmakePresets.json may be required in order for the above toolbar to allow selecting the WSL targets or for the project to allow building:
 
 ![Select Startup](images/select-startup.png)
+
+## Build Scripts
+
+You may find it more convenient to run `Build_All.bat` to compile all targets. This will also package the mod in `_build/@filext/*`.
+
+Note: all above requirements for compiling for windows and linux must be met before `Build_All.bat` will work.
+
+## FileXTTest
+
+There is an executable project that links FileXT and exists to allow breakpoint debugging in Visual Studio with mock data.
