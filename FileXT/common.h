@@ -2,8 +2,9 @@
 
 #include <cstdio>
 
-// Configure
-#define ENABLE_LOG_VERBOSE 1
+// Configure this when building locally to enable more verbose logging.
+// By default verbose logging is enabled in debug builds.
+#define ENABLE_LOG_VERBOSE !defined(NDEBUG)
 
 // Debug logging macros
 #ifndef NDEBUG
