@@ -48,6 +48,8 @@ You may find it more convenient to run `Build_All.bat` to compile all targets. T
 
 Note: all above requirements for compiling for windows and linux must be met before `Build_All.bat` will work.
 
+`Build_All.bat` and `buildArmaMod.ps1` both support an optional parameter `-debug` which will produce/package a debug version of the library.
+
 ## FileXTTest
 
 There is an executable project that links FileXT and exists to allow breakpoint debugging in Visual Studio with mock data.
