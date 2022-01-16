@@ -17,7 +17,8 @@ private _errorText = switch (_errorCode) do {
     case FILEXT_ERROR_WRITE: {"Generic file write error"};
     case FILEXT_ERROR_READ: {"Generic file read error"};
     case FILEXT_ERROR_WRONG_FILE_FORMAT: {"Wrong file format"};
+    case FILEXT_ERROR_BUFFER_TOO_SMALL: {"Buffer too small"};
     default {"Unknown error"};
 };
 
-diag_log format ["[FileXT] Error: %1, arguments: %2", _errorText, _args];
+diag_log format ["[FileXT] Error: %1, Code: %2, arguments: %3", _errorText, _errorCode, _args];

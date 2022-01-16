@@ -368,8 +368,5 @@ FodyWeavers.xsd
 # Arma
 *.pbo
 _build/*
-Build
 Build_*
-filext.zip
-Build_Linux
-CMakeFiles
+out

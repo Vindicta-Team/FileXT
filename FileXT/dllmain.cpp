@@ -6,7 +6,7 @@
 #include "value.h"
 
 
-#if !defined(_MSC_VER)
+#ifndef _MSC_VER
 #include <dlfcn.h>
 #endif
 
@@ -14,35 +14,87 @@ using namespace std;
 
 // Globals
 filext::filemgr gFileMgr;
-string dllFolder;
-string fileStorageFolder;
 
-#ifdef _DEBUG
-FILE* gLogFile;
+#ifndef NDEBUG
+FILE* gLogFile = nullptr;
 #endif
 
 bool checkFileName(string& fileName);
 string getDllFolder();
 
-static struct FileXTEntryPoint {
-	FileXTEntryPoint() {
-		// Open log file
-#ifdef _DEBUG
-		fopen_s(&gLogFile, "filext_log.log", "w");
-		fprintf(gLogFile, "Log file print test: %i\n", 123);
-#endif
-		// Resolve path to this dll
-		dllFolder = getDllFolder();
-		LOG_1("DLL path: %s\n", dllFolder.c_str());
-		fileStorageFolder = dllFolder + string("storage\\");
+const std::string& GetAndEnsureStorageDir()
+{
+	// keep this static path internal so it doesn't get used too early or modified externally.
+	static string fileStorageFolder;
 
-		// Ensure that there is a folder for filext files
-		if (!filesystem::exists(fileStorageFolder)) {
+	if(fileStorageFolder.empty() || !filesystem::exists(fileStorageFolder))
+	{
+		LOG_VERBOSE("File storage directory isn't set or doesn't exist. Attempting to find or create it now.");
+		std::string dllFolder = getDllFolder();
+		LOG_VERBOSE("DLL Folder: %s", dllFolder.c_str());
+
+		if(dllFolder.empty() || !filesystem::exists(dllFolder))
+		{
+			// Use LOG_VERBOSE here because LOG depends on this function completing.
+			LOG_CRITICAL("The DLL folder was not found: \"%s\"", dllFolder.c_str());
+		}
+		fileStorageFolder = dllFolder + string("storage/");
+
+		if(!filesystem::exists(fileStorageFolder))
+		{
+			LOG_VERBOSE("fileStorageFolder not found, creating it now: \"%s\"", fileStorageFolder.c_str());
 			filesystem::create_directory(fileStorageFolder);
 		}
-	}
 
-} g_FileXTEntryPoint;
+		if(!filesystem::exists(fileStorageFolder))
+		{
+			LOG_CRITICAL("The file storage directory could not be created.");
+			fileStorageFolder.clear();
+		}
+
+	}
+	return fileStorageFolder;
+}
+
+#ifndef _MSC_VER
+__attribute__((constructor))
+#endif
+static void Entry()
+{
+		LOG_VERBOSE("FileXT Dll entry\n");
+		std::string const& storageDirectory = GetAndEnsureStorageDir();
+
+		// Open log file
+#ifndef NDEBUG
+		{
+			const std::string logFilename = storageDirectory + "filext_log.log";
+
+			gLogFile = fopen(logFilename.c_str(), "w");
+			if(gLogFile)
+			{
+				fprintf(gLogFile, "Log file print test: %i\n", 123);
+			}
+			else 
+			{
+				gLogFile = stderr;
+				fprintf(gLogFile, "Logging to stderr instead of file.\n");
+			}
+			fflush(gLogFile);
+		}
+#endif
+}
+
+#ifndef _MSC_VER
+__attribute__((destructor))
+#endif
+static void Cleanup()
+{
+			LOG_VERBOSE("FileXT Dll cleanup");
+#ifndef NDEBUG
+	fclose(gLogFile);
+#endif
+}
+
 
 #ifdef _MSC_VER
 BOOL APIENTRY DllMain(HMODULE hModule,
@@ -50,6 +102,15 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 	LPVOID lpReserved
 )
 {
+	switch( ul_reason_for_call ) 
+    { 
+        case DLL_PROCESS_ATTACH:
+			Entry();
+		break;
+		case DLL_PROCESS_DETACH:
+			Cleanup();
+		break;
+	}
 	return TRUE;
 }
 #endif
@@ -62,12 +123,12 @@ extern "C"
 
 // Macro for asserting correct argument count
 #define ASSERT_EXT_ARGC(argc, argcNeeded) if (argc != argcNeeded)	{ \
-LOG_2("Wrong arg count, received: %i, expected: %i\n", argc, argcNeeded); \
+LOG("Wrong arg count, received: %i, expected: %i\n", argc, argcNeeded); \
 return FILEXT_ERROR_WRONG_ARG_COUNT; \
 }
 
 #define ASSERT_BUFFER_SIZE(maxSize, givenSize) if(givenSize > maxSize) {\
-LOG_2("Buffer size is too small. Max size: %i, size: %i.", maxSize, givenSize);\
+LOG("Buffer size is too small. Max size: %i, size: %i.", maxSize, givenSize);\
 return FILEXT_ERROR_BUFFER_TOO_SMALL; \
 }
 
@@ -84,22 +145,24 @@ FILEXT_EXPORT int FILEXT_CALL RVExtensionArgs(char* output, int outputSize, cons
 	const char* functionName = argv[0];
 	const char* data = function; // It doesn't have the quotes!
 
+	std::string const& storageDirectory = GetAndEnsureStorageDir();
+
 	// Exctract file name: remove leading and trailing "
 	string fileName("");
 	if (argc >= 2) {
 		fileName = string(argv[1]);
 		fileName.erase(0, 1);
 		fileName.pop_back();
-		//LOG_1("Argc: %i\n", argc);
+		//LOG("Argc: %i\n", argc);
 
 		// Check file name
 		// Bail if file name is wrong
 		if (!checkFileName(fileName))
 			return FILEXT_ERROR_WRONG_FILE_NAME;
-		fileName = fileStorageFolder + fileName;
+		fileName = storageDirectory + fileName;
 	}
 
-	LOG_3("RVExtensionArgs: function: %s, fileName: %s, outputSize: %i\n", functionName, fileName.c_str(), outputSize);
+	LOG_VERBOSE("RVExtensionArgs: function: %s, fileName: %s, outputSize: %i\n", functionName, fileName.c_str(), outputSize);
 
 	// Resolve function name
 
@@ -138,7 +201,7 @@ FILEXT_EXPORT int FILEXT_CALL RVExtensionArgs(char* output, int outputSize, cons
 			reset = 0;
 		}
 		int retInt = gFileMgr.get(fileName, argv[2], strOut, outputSize-4, (bool)reset); // Just to be safe, reduce size a bit
-		LOG_1("  Returning string of size: %i\n", (unsigned int)strOut.size());
+		LOG("  Returning string of size: %i\n", (unsigned int)strOut.size());
 		ASSERT_BUFFER_SIZE((int)outputSize -1, (int)strOut.size());
 		strcpy(output, strOut.c_str());
 		return retInt;
@@ -160,11 +223,17 @@ FILEXT_EXPORT int FILEXT_CALL RVExtensionArgs(char* output, int outputSize, cons
 	if (strcmp(functionName, "\"getFiles\"") == 0) {
 		ASSERT_EXT_ARGC(argc, 1);
 
+		// prevent filesystem exception on directory_iterator
+		if (!filesystem::exists(storageDirectory)) {
+			LOG_CRITICAL("failed to getFiles");
+			return 0;
+		}
+
 		vector<sqf::value> vectorFileNamesSQF;
-		for (const auto& entry : filesystem::directory_iterator(fileStorageFolder)) {
+		for (const auto& entry : filesystem::directory_iterator(storageDirectory)) {
 			string fileName = entry.path().filename().string();
 			vectorFileNamesSQF.push_back(sqf::value(fileName));
-			LOG_1("File: %s\n", fileName.c_str());
+			LOG("File: %s\n", fileName.c_str());
 		}
 		
 		sqf::value fileNamesSQFArray(vectorFileNamesSQF);
@@ -177,9 +246,16 @@ FILEXT_EXPORT int FILEXT_CALL RVExtensionArgs(char* output, int outputSize, cons
 
 	// ["", ["deleteFile", fileName]]
 	if (strcmp(functionName, "\"deleteFile\"") == 0) {
-		try {
-			filesystem::remove(fileName);
-		} catch (...) {
+		if(filesystem::exists(fileName))
+		{
+			try {
+				filesystem::remove(fileName);
+			} catch (...) {
+				return FILEXT_ERROR_WRONG_FILE_NAME;
+			}
+		}
+		else
+		{
 			return FILEXT_ERROR_WRONG_FILE_NAME;
 		}
 		return FILEXT_SUCCESS;
@@ -207,7 +283,7 @@ FILEXT_EXPORT void FILEXT_CALL RVExtensionVersion(char* output, int outputSize)
 
 	if(versionString.size() > (size_t)outputSize - 1)
 	{
-		LOG_2("Buffer size is too small. Max size: %i, size: %i.", (int)outputSize - 1, (int)versionString.size());
+		LOG("Buffer size is too small. Max size: %i, size: %i.", (int)outputSize - 1, (int)versionString.size());
 	}
 	else
 	{
@@ -247,7 +323,7 @@ std::string getDllFolder()
 		(LPCSTR)getDllFolder,
 		&hm))
 	{
-		LOG_1("error: GetModuleHandle returned %i", GetLastError());
+		LOG("error: GetModuleHandle returned %i", GetLastError());
 		return std::string("");
 	}
 
@@ -261,6 +337,11 @@ std::string getDllFolder()
 #else 
 	Dl_info dl_info;
 	dladdr((void*)getDllFolder, &dl_info);
-	return std::string(dl_info.dli_fname);
+	std::string p = std::string(dl_info.dli_fname);
+
+	// Remove DLL name from the path
+	auto pos = p.rfind('/');
+	p.erase(pos + 1, p.size());
+	return p;
 #endif
 }

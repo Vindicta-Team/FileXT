@@ -10,6 +10,6 @@
 #include <string>
 #include <unordered_map>
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 #include <stdio.h>
 #endif

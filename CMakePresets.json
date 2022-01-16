@@ -6,10 +6,10 @@
             "displayName": "Linux Debug",
             "description": "Target the Windows Subsystem for Linux (WSL) or a remote Linux system.",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/Build_Linux/${presetName}",
+            "binaryDir": "${sourceDir}/Build_Linux",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/Build_Linux/install/${presetName}"
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/Build_Linux/install"
             },
             "vendor": {
                 "microsoft.com/VisualStudioSettings/CMake/1.0": { "hostOS": [ "Linux" ] },

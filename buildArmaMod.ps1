@@ -1,3 +1,5 @@
+param ([switch]$debug)
+
 # The reason for this function is simply to not have the path "D:/SteamLibrary/steamapps/common/Arma 3 Tools" or similar hard coded
 # If this gives you trouble, you can just return the path to your Arma 3 Tools directory (like above) from this function.
 # It should be reliable, though - unless Steam changes it's vdf format or how it stores the steam install in the registry.
@@ -60,15 +62,27 @@ Push-Location
 
 "Ensure directories.."
 New-Item "_build/@filext" -ItemType Directory -Force
+New-Item "_build/@filext/storage" -ItemType Directory -Force
 
 "Copy extra files.."
 
 Copy-Item "Arma mod/mod.cpp" "_build/@filext"
 
-"Copy DLLs..."
-Copy-Item "Build_Win64/Release/filext.dll" "_build/@filext/filext_x64.dll"
-Copy-Item "Build_Win32/Release/filext.dll" "_build/@filext/filext.dll"
-Copy-Item "Build_Linux/libFileXT.so" "_build/@filext/libFileXT.so"
+if($debug) {
+    Write-Host "Copy DLLs... (debug)"
+    Copy-Item "Build_Win64/Debug/filext.dll" "_build/@filext/filext_x64.dll"
+    Copy-Item "Build_Win32/Debug/filext.dll" "_build/@filext/filext.dll"
+    Copy-Item "Build_Linux/libFileXT.so" "_build/@filext/filext_x64.so"
+
+    Copy-Item "Build_Win64/Debug/filext.pdb" "_build/@filext/filext_x64.pdb"
+    Copy-Item "Build_Win32/Debug/filext.pdb" "_build/@filext/filext.pdb"
+}
+else {
+    Write-Host "Copy DLLs... (release)"
+    Copy-Item "Build_Win64/Release/filext.dll" "_build/@filext/filext_x64.dll"
+    Copy-Item "Build_Win32/Release/filext.dll" "_build/@filext/filext.dll"
+    Copy-Item "Build_Linux/libFileXT.so" "_build/@filext/filext_x64.so"
+}
 
 "Build pbos..."
 [string]$arma3ToolsPath = Get-Arma3ToolsPath

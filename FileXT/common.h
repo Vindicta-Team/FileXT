@@ -1,20 +1,28 @@
 #pragma once
 
-// Debug logging macros
-#ifdef _DEBUG
 #include <cstdio>
+
+// Configure
+#define ENABLE_LOG_VERBOSE 1
+
+// Debug logging macros
+#ifndef NDEBUG
 extern FILE* gLogFile;
-#define LOG(text) fprintf(gLogFile, text); fflush(gLogFile)
-#define LOG_0(text) fprintf(gLogFile, text); fflush(gLogFile)
-#define LOG_1(text, a) fprintf(gLogFile, text, a); fflush(gLogFile)
-#define LOG_2(text, a, b) fprintf(gLogFile, text, a, b); fflush(gLogFile)
-#define LOG_3(text, a, b, c) fprintf(gLogFile, text, a, b, c); fflush(gLogFile)
-#define LOG_4(text, a, b, c, d) fprintf(gLogFile, text, a, b, c, d); fflush(gLogFile)
+#define LOG(...) fprintf(gLogFile?gLogFile:gLogFile=stderr, __VA_ARGS__); fflush(gLogFile)
 #else
-#define LOG(text)
-#define LOG_0(text)
-#define LOG_1(text, a)
-#define LOG_2(text, a, b)
-#define LOG_3(text, a, b, c)
-#define LOG_4(text, a, b, c, d)
+#define LOG(...)
+#endif
+
+#if ENABLE_LOG_VERBOSE && !defined(NDEBUG)
+#define LOG_VERBOSE(...) fprintf(gLogFile?gLogFile:gLogFile=stderr, "FileXT: "); fprintf(gLogFile, __VA_ARGS__ ); fprintf(gLogFile, "\n"); fflush(gLogFile)
+#elif ENABLE_LOG_VERBOSE
+#define LOG_VERBOSE(...) fprintf(stderr, "FileXT: "); fprintf(stderr,  __VA_ARGS__ ); fprintf(stderr, "\n"); fflush(stderr)
+#else 
+#define LOG_VERBOSE(...) 
+#endif
+
+#if !defined(NDEBUG)
+#define LOG_CRITICAL(...) fprintf(gLogFile?gLogFile:gLogFile=stderr, "FileXT: CRITICAL ERROR: "); fprintf(gLogFile, __VA_ARGS__ ); fprintf(gLogFile, "\n"); fflush(gLogFile)
+#else
+#define LOG_CRITICAL(...) fprintf(stderr, "FileXT: CRITICAL ERROR: "); fprintf(stderr,  __VA_ARGS__ ); fprintf(stderr, "\n"); fflush(stderr)
 #endif
