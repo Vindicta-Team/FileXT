@@ -15,12 +15,12 @@ fileInfo::fileInfo(std::string& fileName) :
 	m_currentGetID(0),
 	m_currentGetKey("")
 {
-	LOG_1("NEW fileInfo: %s\n", fileName.c_str());
+	LOG("NEW fileInfo: %s\n", fileName.c_str());
 }
 
 fileInfo::~fileInfo()
 {
-	LOG_1("DELETE fileinfo: %s\n", m_fileName.c_str());
+	LOG("DELETE fileinfo: %s\n", m_fileName.c_str());
 }
 
 
@@ -30,7 +30,7 @@ fileInfo::~fileInfo()
 
 int filext::filemgr::open(const std::string& fName)
 {
-	LOG_1("open(%s)\n", fName.c_str());
+	LOG("open(%s)\n", fName.c_str());
 
 	// Check if this file is already open
 	string fNameStr(fName);
@@ -49,7 +49,7 @@ int filext::filemgr::open(const std::string& fName)
 
 int filext::filemgr::close(const std::string& fName)
 {
-	LOG_1("close(%s)\n", fName.c_str());
+	LOG("close(%s)\n", fName.c_str());
 
 	// Check if this file is already open
 	string fNameStr(fName);
@@ -69,7 +69,7 @@ int filext::filemgr::close(const std::string& fName)
 
 int filext::filemgr::set(const std::string& fName, const char* key, const char* value)
 {
-	LOG_3("set(%s, %s, %s)\n", fName.c_str(), key, value);
+	LOG("set(%s, %s, %s)\n", fName.c_str(), key, value);
 
 	// Check if this file is already open
 	string fNameStr(fName);
@@ -87,7 +87,7 @@ int filext::filemgr::set(const std::string& fName, const char* key, const char* 
 
 int filext::filemgr::eraseKey(const std::string& fName, const char* key)
 {
-	LOG_2("eraseKey(%s, %s)\n", fName.c_str(), key);
+	LOG("eraseKey(%s, %s)\n", fName.c_str(), key);
 
 	// Check if this file is already open
 	string fNameStr(fName);
@@ -105,7 +105,7 @@ int filext::filemgr::eraseKey(const std::string& fName, const char* key)
 
 int filext::filemgr::get(const std::string& fName, const char* key, string& outValue, unsigned int outputSize, bool reset)
 {
-	LOG_4("get(%s, %s, reset: %i, outputSize: %i)\n", fName.c_str(), key, reset, outputSize);
+	LOG("get(%s, %s, reset: %i, outputSize: %i)\n", fName.c_str(), key, reset, outputSize);
 
 	unsigned int nBytesToGet = outputSize - 1; // We need to reserve some space for null
 
@@ -119,7 +119,7 @@ int filext::filemgr::get(const std::string& fName, const char* key, string& outV
 		if (searchKey != finfo->m_map.end()) {
 			// Key is found in map
 			string* value = &searchKey->second;
-			LOG_1("  Key found, size: %i\n", (unsigned int) value->size());
+			LOG("  Key found, size: %i\n", (unsigned int) value->size());
 
 			// Check if we were reading same key previously
 			if (finfo->m_currentGetKey != keyStr || reset) {
@@ -132,7 +132,7 @@ int filext::filemgr::get(const std::string& fName, const char* key, string& outV
 				nBytesToGet = (unsigned int)(value->size()) - finfo->m_currentGetID;
 			}
 
-			LOG_1("  Returning bytes: %i\n", nBytesToGet);
+			LOG("  Returning bytes: %i\n", nBytesToGet);
 
 			// Read up to outputSize bytes
 			outValue = value->substr(finfo->m_currentGetID, nBytesToGet);
@@ -149,7 +149,7 @@ int filext::filemgr::get(const std::string& fName, const char* key, string& outV
 				return FILEXT_GET_MORE_AVAILABLE;
 			}
 		} else {
-			LOG_1("  Key %s was not found\n", key);
+			LOG("  Key %s was not found\n", key);
 			return FILEXT_ERROR_KEY_NOT_FOUND;
 		}
 	} else {
@@ -161,7 +161,7 @@ int filext::filemgr::get(const std::string& fName, const char* key, string& outV
 
 int filext::filemgr::write(const std::string& fName)
 {
-	LOG_1("write(%s)\n", fName.c_str());
+	LOG("write(%s)\n", fName.c_str());
 
 	// Check if this file is already open
 	string fNameStr(fName);
@@ -185,7 +185,7 @@ int filext::filemgr::write(const std::string& fName)
 				const string* key = &(iter->first);
 				const string* val = &(iter->second);
 
-				LOG_2("    writing %s, size: %i\n", iter->first.c_str(), (int)val->size());
+				LOG("    writing %s, size: %i\n", iter->first.c_str(), (int)val->size());
 
 				f.write(key->data(), key->size());
 				f.write(endKey, sizeof(endKey));
@@ -209,7 +209,7 @@ int filext::filemgr::write(const std::string& fName)
 
 int filext::filemgr::read(const std::string& fName)
 {
-	LOG_1("read(%s)\n", fName.c_str());
+	LOG("read(%s)\n", fName.c_str());
 
 	// Check if this file is already open
 	string fNameStr(fName);
@@ -225,7 +225,7 @@ int filext::filemgr::read(const std::string& fName)
 			f.seekg(0);
 			f.read((char*)&header, sizeof(fileHeader));
 			bool magicNumberOk = header.magicNumber == FILEXT_HEADER_MAGIC_NUMBER;
-			LOG_3("size: %i, version: %i, magic number ok: %i\n", header.size, header.version, (int)magicNumberOk);
+			LOG("size: %i, version: %i, magic number ok: %i\n", header.size, header.version, (int)magicNumberOk);
 
 			// Bail if header is wrong
 			if (!magicNumberOk) {
@@ -267,7 +267,7 @@ int filext::filemgr::read(const std::string& fName)
 				string val(&fContent[iValStart]);
 				finfo->m_map[key] = val;
 
-				LOG_2("    Added %s: size: %i\n", key.c_str(), (int)val.size());
+				LOG("    Added %s: size: %i\n", key.c_str(), (int)val.size());
 			};
 
 			delete[]fContent;

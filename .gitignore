@@ -368,3 +368,5 @@ FodyWeavers.xsd
 # Arma
 *.pbo
 _build/*
+Build_*/
+out
