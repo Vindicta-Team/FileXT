@@ -1,6 +1,9 @@
-﻿cmake_minimum_required (VERSION 3.8)
+﻿cmake_minimum_required (VERSION 3.15)
 
 set(CMAKE_SUPPRESS_REGENERATION true)
+
+
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 project ("FileXT")
 
