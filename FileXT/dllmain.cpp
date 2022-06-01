@@ -14,10 +14,7 @@ using namespace std;
 
 // Globals
 filext::filemgr gFileMgr;
-
-#ifndef NDEBUG
-FILE* gLogFile = nullptr;
-#endif
+std::unique_ptr<FILE, decltype(&std::fclose)> gpFile(std::fopen(getLogPath().u8string().c_str(), "w"), &std::fclose);
 
 bool checkFileName(string& fileName);
 string getDllFolder();
@@ -63,25 +60,6 @@ static void Entry()
 {
 		LOG_VERBOSE("FileXT Dll entry\n");
 		std::string const& storageDirectory = GetAndEnsureStorageDir();
-
-		// Open log file
-#ifndef NDEBUG
-		{
-			const std::string logFilename = storageDirectory + "filext_log.log";
-
-			gLogFile = fopen(logFilename.c_str(), "w");
-			if(gLogFile)
-			{
-				fprintf(gLogFile, "Log file print test: %i\n", 123);
-			}
-			else 
-			{
-				gLogFile = stderr;
-				fprintf(gLogFile, "Logging to stderr instead of file.\n");
-			}
-			fflush(gLogFile);
-		}
-#endif
 }
 
 #ifndef _MSC_VER
@@ -89,10 +67,7 @@ __attribute__((destructor))
 #endif
 static void Cleanup()
 {
-			LOG_VERBOSE("FileXT Dll cleanup");
-#ifndef NDEBUG
-	fclose(gLogFile);
-#endif
+		LOG_VERBOSE("FileXT Dll cleanup");
 }
 
 
@@ -279,7 +254,7 @@ FILEXT_EXPORT void FILEXT_CALL RVExtensionVersion(char* output, int outputSize)
 		LOG("Invalid buffer");
 	}
 	
-	std::string versionString = "Filext 1.1";
+	std::string versionString = "FileXT 1.2";
 
 	if(versionString.size() > (size_t)outputSize - 1)
 	{
@@ -308,7 +283,6 @@ bool checkFileName(string& fileName) {
 	// All good so far
 	return true;
 }
-
 
 std::string getDllFolder()
 {
@@ -344,4 +318,14 @@ std::string getDllFolder()
 	p.erase(pos + 1, p.size());
 	return p;
 #endif
+}
+
+std::filesystem::path& getLogPath() {
+	static std::filesystem::path logPath;
+
+	if (logPath.empty()) {
+		logPath = std::filesystem::path(getDllFolder()) / "filext_log.log";
+	}
+
+	return logPath;
 }
