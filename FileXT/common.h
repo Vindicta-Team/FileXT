@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdio>
+#include <vector>
 
 // Configure this when building locally to enable more verbose logging.
 // By default verbose logging is enabled in debug builds.
