@@ -58,30 +58,32 @@ function Get-Arma3ToolsPath()
 
 ###################################################################################################
 
-Push-Location
+Push-Location ..
 
 "Ensure directories.."
-New-Item "_build/@filext" -ItemType Directory -Force
-New-Item "_build/@filext/storage" -ItemType Directory -Force
+New-Item "build/@filext" -ItemType Directory -Force
+New-Item "build/@filext/storage" -ItemType Directory -Force
 
 "Copy extra files.."
 
-Copy-Item "Arma mod/mod.cpp" "_build/@filext"
+Copy-Item "Arma mod/mod.cpp" "build/@filext"
 
 if($debug) {
     Write-Host "Copy DLLs... (debug)"
-    Copy-Item "Build_Win64/Debug/filext.dll" "_build/@filext/filext_x64.dll"
-    Copy-Item "Build_Win32/Debug/filext.dll" "_build/@filext/filext.dll"
-    Copy-Item "Build_Linux/libFileXT.so" "_build/@filext/filext_x64.so"
+    Copy-Item "bin/Debug/filext.dll" "build/@filext/filext_x64.dll"
+    Copy-Item "bin/Debug/filext.dll" "build/@filext/filext.dll"
+    Copy-Item "bin/Debug/filext_x64.so" "build/@filext/filext_x64.so"
+    Copy-Item "bin/Debug/filext.so" "build/@filext/filext.so"
 
-    Copy-Item "Build_Win64/Debug/filext.pdb" "_build/@filext/filext_x64.pdb"
-    Copy-Item "Build_Win32/Debug/filext.pdb" "_build/@filext/filext.pdb"
+    Copy-Item "bin/Debug/filext.pdb" "build/@filext/filext_x64.pdb"
+    Copy-Item "bin/Debug/filext.pdb" "build/@filext/filext.pdb"
 }
 else {
     Write-Host "Copy DLLs... (release)"
-    Copy-Item "Build_Win64/Release/filext.dll" "_build/@filext/filext_x64.dll"
-    Copy-Item "Build_Win32/Release/filext.dll" "_build/@filext/filext.dll"
-    Copy-Item "Build_Linux/libFileXT.so" "_build/@filext/filext_x64.so"
+    Copy-Item "bin/Release/filext_x64.dll" "build/@filext/filext_x64.dll"
+    Copy-Item "bin/Release/filext.dll" "build/@filext/filext.dll"
+    Copy-Item "bin/Release/filext_x64.so" "build/@filext/filext_x64.so"
+    Copy-Item "bin/Release/filext.so" "build/@filext/filext.so"
 }
 
 "Build pbos..."
@@ -90,9 +92,9 @@ else {
 # Specific Arma 3 Tools
 [string]$addonBuilderPath = "$arma3ToolsPath/AddonBuilder/AddonBuilder.exe"
 
-[string]$thisLoc = $PSScriptRoot.Replace("\", "/")
+[string]$thisLoc = Get-Location
 [string]$addonPath = "$thisLoc/Arma mod/addons/filext"
-[string]$builtPath = "$thisLoc/_build/@filext/addons"
+[string]$builtPath = "$thisLoc/build/@filext/addons"
 
 [string[]]$addonBuilderArgs=@(
     "`"$addonPath`"",
