@@ -12,12 +12,14 @@
 
 using namespace std;
 
+// Forward Declerations
+bool checkFileName(string& fileName);
+string getDllFolder();
+std::filesystem::path& getLogPath();
+
 // Globals
 filext::filemgr gFileMgr;
 std::unique_ptr<FILE, decltype(&std::fclose)> gpFile(std::fopen(getLogPath().u8string().c_str(), "w"), &std::fclose);
-
-bool checkFileName(string& fileName);
-string getDllFolder();
 
 const std::string& GetAndEnsureStorageDir()
 {
@@ -58,7 +60,7 @@ __attribute__((constructor))
 #endif
 static void Entry()
 {
-		LOG_VERBOSE("FileXT Dll entry\n");
+		LOG_VERBOSE("FileXT Dll entry");
 		std::string const& storageDirectory = GetAndEnsureStorageDir();
 }
 
@@ -98,7 +100,7 @@ extern "C"
 
 // Macro for asserting correct argument count
 #define ASSERT_EXT_ARGC(argc, argcNeeded) if (argc != argcNeeded)	{ \
-LOG("Wrong arg count, received: %i, expected: %i\n", argc, argcNeeded); \
+LOG("Wrong arg count, received: %i, expected: %i", argc, argcNeeded); \
 return FILEXT_ERROR_WRONG_ARG_COUNT; \
 }
 
@@ -128,7 +130,7 @@ FILEXT_EXPORT int FILEXT_CALL RVExtensionArgs(char* output, int outputSize, cons
 		fileName = string(argv[1]);
 		fileName.erase(0, 1);
 		fileName.pop_back();
-		//LOG("Argc: %i\n", argc);
+		//LOG("Argc: %i", argc);
 
 		// Check file name
 		// Bail if file name is wrong
@@ -137,7 +139,7 @@ FILEXT_EXPORT int FILEXT_CALL RVExtensionArgs(char* output, int outputSize, cons
 		fileName = storageDirectory + fileName;
 	}
 
-	LOG_VERBOSE("RVExtensionArgs: function: %s, fileName: %s, outputSize: %i\n", functionName, fileName.c_str(), outputSize);
+	LOG_VERBOSE("RVExtensionArgs: function: %s, fileName: %s, outputSize: %i", functionName, fileName.c_str(), outputSize);
 
 	// Resolve function name
 
@@ -176,7 +178,7 @@ FILEXT_EXPORT int FILEXT_CALL RVExtensionArgs(char* output, int outputSize, cons
 			reset = 0;
 		}
 		int retInt = gFileMgr.get(fileName, argv[2], strOut, outputSize-4, (bool)reset); // Just to be safe, reduce size a bit
-		LOG("  Returning string of size: %i\n", (unsigned int)strOut.size());
+		LOG("  Returning string of size: %i", (unsigned int)strOut.size());
 		ASSERT_BUFFER_SIZE((int)outputSize -1, (int)strOut.size());
 		strcpy(output, strOut.c_str());
 		return retInt;
@@ -208,7 +210,7 @@ FILEXT_EXPORT int FILEXT_CALL RVExtensionArgs(char* output, int outputSize, cons
 		for (const auto& entry : filesystem::directory_iterator(storageDirectory)) {
 			string fileName = entry.path().filename().string();
 			vectorFileNamesSQF.push_back(sqf::value(fileName));
-			LOG("File: %s\n", fileName.c_str());
+			LOG("File: %s", fileName.c_str());
 		}
 		
 		sqf::value fileNamesSQFArray(vectorFileNamesSQF);
@@ -297,8 +299,8 @@ std::string getDllFolder()
 		(LPCSTR)getDllFolder,
 		&hm))
 	{
-		LOG("error: GetModuleHandle returned %i", GetLastError());
-		return std::string("");
+		LOG_G("Fatal Error: GetModuleHandle returned %i", GetLastError());
+		throw new std::runtime_error("Fatal Error: GetModuleHandle failed.");
 	}
 
 	GetModuleFileNameA(hm, path, sizeof(path));
@@ -310,7 +312,10 @@ std::string getDllFolder()
 	return p;
 #else 
 	Dl_info dl_info;
-	dladdr((void*)getDllFolder, &dl_info);
+	if (dladdr((void*)getDllFolder, &dl_info) == 0) {
+		LOG_G("Fatal Error: dladdr returned 0");
+		throw new std::runtime_error("Fatal Error: dladdr returned 0");
+    }
 	std::string p = std::string(dl_info.dli_fname);
 
 	// Remove DLL name from the path
