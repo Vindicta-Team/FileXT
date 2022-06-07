@@ -1,35 +1,117 @@
 ﻿{
-    "version": 2,
-    "configurePresets": [
-        {
-            "name": "linux-debug",
-            "displayName": "Linux Debug",
-            "description": "Target the Windows Subsystem for Linux (WSL) or a remote Linux system.",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/Build_Linux",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/Build_Linux/install"
-            },
-            "vendor": {
-                "microsoft.com/VisualStudioSettings/CMake/1.0": { "hostOS": [ "Linux" ] },
-                "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": { "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}" }
-            }
-        },
-        {
-            "name": "linux-release",
-            "displayName": "Linux Release",
-            "description": "Target the Windows Subsystem for Linux (WSL) or a remote Linux system.",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/Build_Linux/",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/Build_Linux/install/${presetName}"
-            },
-            "vendor": {
-                "microsoft.com/VisualStudioSettings/CMake/1.0": { "hostOS": [ "Linux" ] },
-                "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": { "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}" }
-            }
-        }
-    ]
+  "version": 2,
+  "configurePresets": [
+    {
+      "name": "x64-linux",
+      "displayName": "x64 Linux",
+      "description": "Target the Windows Subsystem for Linux (WSL) or a remote Linux system.",
+      "generator": "Ninja Multi-Config",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install/${presetName}",
+        "Is64Bit": "TRUE"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": { "hostOS": [ "Linux" ] },
+        "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": { "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}" }
+      }
+    },
+    {
+      "name": "x86-linux",
+      "displayName": "x86 Linux",
+      "description": "Target the Windows Subsystem for Linux (WSL) or a remote Linux system.",
+      "generator": "Ninja Multi-Config",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install/${presetName}",
+        "Is64Bit": "FALSE"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": { "hostOS": [ "Linux" ] },
+        "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": { "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}" }
+      }
+    },
+    {
+      "name": "x86-windows",
+      "displayName": "x86 Windows",
+      "description": "Standard Windows 32-bit target.",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "Win32",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install/${presetName}",
+        "Is64Bit": "FALSE"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": { "hostOS": [ "Windows" ] },
+        "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": { "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}" }
+      }
+    },
+    {
+      "name": "x64-windows",
+      "displayName": "x64 Windows",
+      "description": "Standard Windows 64-bit target.",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install/${presetName}",
+        "Is64Bit": "TRUE"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": { "hostOS": [ "Windows" ] },
+        "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": { "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}" }
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "x64-linux-debug",
+      "displayName": "Debug",
+      "configurePreset": "x64-linux",
+      "configuration": "Debug"
+    },
+    {
+      "name": "x64-linux-release",
+      "displayName": "Release",
+      "configurePreset": "x64-linux",
+      "configuration": "Release"
+    },
+    {
+      "name": "x86-linux-debug",
+      "displayName": "Debug",
+      "configurePreset": "x86-linux",
+      "configuration": "Debug"
+    },
+    {
+      "name": "x86-linux-release",
+      "displayName": "Release",
+      "configurePreset": "x86-linux",
+      "configuration": "Release"
+    },
+    {
+      "name": "x64-windows-debug",
+      "displayName": "Debug",
+      "configurePreset": "x64-windows",
+      "configuration": "Debug"
+    },
+    {
+      "name": "x64-windows-release",
+      "displayName": "Release",
+      "configurePreset": "x64-windows",
+      "configuration": "Release"
+    },
+    {
+      "name": "x86-windows-debug",
+      "displayName": "Debug",
+      "configurePreset": "x86-windows",
+      "configuration": "Debug"
+    },
+    {
+      "name": "x86-windows-release",
+      "displayName": "Release",
+      "configurePreset": "x86-windows",
+      "configuration": "Release"
+    }
+  ]
 }
