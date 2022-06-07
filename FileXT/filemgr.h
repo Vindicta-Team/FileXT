@@ -6,15 +6,16 @@ Class which represents whole extension.
 
 #include <map>
 #include <string>
+#include <filesystem>
 #include <stdint.h>
 
 namespace filext
 {
 	struct fileInfo
 	{
-		fileInfo(std::string& fileName);
+		fileInfo(const std::filesystem::path& filepath);
 		~fileInfo();
-		std::string m_fileName;
+		std::filesystem::path m_filepath;
 		std::unordered_map<std::string, std::string> m_map;
 		unsigned int m_currentGetID;
 		std::string m_currentGetKey;
@@ -37,16 +38,16 @@ namespace filext
 	class filemgr
 	{
 	public:
-		int open(const std::string& fName);
-		int close(const std::string& fName);
-		int set(const std::string& fName, const char* key, const char* value);
-		int get(const std::string& fName, const char* key, std::string& outValue, unsigned int outputSize, bool reset);
-		int eraseKey(const std::string& fName, const char* key);
-		int write(const std::string& fName);
-		int read(const std::string& fName);
+		int open(const std::filesystem::path& filepath);
+		int close(const std::filesystem::path& filepath);
+		int set(const std::filesystem::path& filepath, const char* key, const char* value);
+		int get(const std::filesystem::path& filepath, const char* key, std::string& outValue, unsigned int outputSize, bool reset);
+		int eraseKey(const std::filesystem::path& filepath, const char* key);
+		int write(const std::filesystem::path& filepath);
+		int read(const std::filesystem::path& filepath);
 
 	private:
-		std::map<std::string, fileInfo*> m_fileMap;
+		std::map<std::filesystem::path, fileInfo*> m_fileMap;
 	};
 };
 

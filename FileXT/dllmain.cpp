@@ -3,55 +3,12 @@
 #include "common.h"
 #include "errorCodes.h"
 #include "filemgr.h"
+#include "utility.h"
 #include "value.h"
-
-
-#ifndef _MSC_VER
-#include <dlfcn.h>
-#endif
-
-using namespace std;
 
 // Globals
 filext::filemgr gFileMgr;
-std::unique_ptr<FILE, decltype(&std::fclose)> gpFile(std::fopen(getLogPath().u8string().c_str(), "w"), &std::fclose);
-
-bool checkFileName(string& fileName);
-string getDllFolder();
-
-const std::string& GetAndEnsureStorageDir()
-{
-	// keep this static path internal so it doesn't get used too early or modified externally.
-	static string fileStorageFolder;
-
-	if(fileStorageFolder.empty() || !filesystem::exists(fileStorageFolder))
-	{
-		LOG_VERBOSE("File storage directory isn't set or doesn't exist. Attempting to find or create it now.");
-		std::string dllFolder = getDllFolder();
-		LOG_VERBOSE("DLL Folder: %s", dllFolder.c_str());
-
-		if(dllFolder.empty() || !filesystem::exists(dllFolder))
-		{
-			// Use LOG_VERBOSE here because LOG depends on this function completing.
-			LOG_CRITICAL("The DLL folder was not found: \"%s\"", dllFolder.c_str());
-		}
-		fileStorageFolder = dllFolder + string("storage/");
-
-		if(!filesystem::exists(fileStorageFolder))
-		{
-			LOG_VERBOSE("fileStorageFolder not found, creating it now: \"%s\"", fileStorageFolder.c_str());
-			filesystem::create_directory(fileStorageFolder);
-		}
-
-		if(!filesystem::exists(fileStorageFolder))
-		{
-			LOG_CRITICAL("The file storage directory could not be created.");
-			fileStorageFolder.clear();
-		}
-
-	}
-	return fileStorageFolder;
-}
+std::unique_ptr<FILE, decltype(&std::fclose)> gpFile(std::fopen(filext::getLogPath().u8string().c_str(), "w"), &std::fclose);
 
 #ifndef _MSC_VER
 __attribute__((constructor))
@@ -59,7 +16,7 @@ __attribute__((constructor))
 static void Entry()
 {
 		LOG_VERBOSE("FileXT Dll entry\n");
-		std::string const& storageDirectory = GetAndEnsureStorageDir();
+		filext::getStorage();
 }
 
 #ifndef _MSC_VER
@@ -116,57 +73,83 @@ callExtension arguments are:
 */
 FILEXT_EXPORT int FILEXT_CALL RVExtensionArgs(char* output, int outputSize, const char* function, const char** argv, int argc)
 {
+	filext::tryMigrateStorageFolder();
+	static const std::filesystem::path& storage = filext::getStorage();
+
 	// Extract function name
-	const char* functionName = argv[0];
+	const std::string functionName = string::trim(argv[0], "\"");
 	const char* data = function; // It doesn't have the quotes!
-
-	std::string const& storageDirectory = GetAndEnsureStorageDir();
-
-	// Exctract file name: remove leading and trailing "
-	string fileName("");
-	if (argc >= 2) {
-		fileName = string(argv[1]);
-		fileName.erase(0, 1);
-		fileName.pop_back();
-		//LOG("Argc: %i\n", argc);
-
-		// Check file name
-		// Bail if file name is wrong
-		if (!checkFileName(fileName))
-			return FILEXT_ERROR_WRONG_FILE_NAME;
-		fileName = storageDirectory + fileName;
-	}
-
-	LOG_VERBOSE("RVExtensionArgs: function: %s, fileName: %s, outputSize: %i\n", functionName, fileName.c_str(), outputSize);
 
 	// Resolve function name
 
+	// ["", ["getFiles"]]
+	if (functionName == "getFiles") {
+		ASSERT_EXT_ARGC(argc, 1);
+
+		std::vector<std::string> filenames;
+		if (!std::filesystem::exists(storage)) {
+			LOG_CRITICAL("failed to getFiles\n");
+			return 0;
+		}
+
+		// Collect list of all files in storage folder
+		for (const auto& dirEntry : std::filesystem::directory_iterator(storage)) {
+			LOG("File: %s\n", dirEntry.path().c_str());
+			std::string filename = dirEntry.path().filename().string();
+			filenames.emplace_back(filename);
+		}
+
+		sqf::value filenamesSQF(filenames);
+		std::string strOut = filenamesSQF.to_string();
+
+		ASSERT_BUFFER_SIZE((int)outputSize - 1, (int)strOut.size());
+		std::strcpy(output, strOut.c_str());
+		return 0;
+	};
+
+	// Extract file name: remove leading and trailing "
+	std::filesystem::path file;
+	if (argc >= 2) {
+		file = string::trim(argv[1], "\"");
+	}
+
+	// Check file name
+	// Bail if file name is wrong
+	if (file.empty())
+	{
+		return FILEXT_ERROR_WRONG_FILE_NAME;
+	}
+
+	file = storage / file;
+
+	LOG_VERBOSE("RVExtensionArgs: function: %s, fileName: %s, outputSize: %i\n", functionName, file.string().c_str(), outputSize);
+
 	// ["", ["open", fileName]]
-	if (strcmp(functionName, "\"open\"") == 0) {
+	if (functionName == "open") {
 		ASSERT_EXT_ARGC(argc, 2);
-		return gFileMgr.open(fileName);
+		return gFileMgr.open(file);
 	};
 
 	// ["", ["close", fileName]]
-	if (strcmp(functionName, "\"close\"") == 0) {
+	if (functionName == "close") {
 		ASSERT_EXT_ARGC(argc, 2);
-		return gFileMgr.close(fileName);
+		return gFileMgr.close(file);
 	};
 
 	// ["", ["write", fileName]]
-	if (strcmp(functionName, "\"write\"") == 0) {
+	if (functionName == "write") {
 		ASSERT_EXT_ARGC(argc, 2);
-		return gFileMgr.write(fileName);
+		return gFileMgr.write(file);
 	};
 
 	// ["", ["read", fileName]]
-	if (strcmp(functionName, "\"read\"") == 0) {
+	if (functionName == "read") {
 		ASSERT_EXT_ARGC(argc, 2);
-		return gFileMgr.read(fileName);
+		return gFileMgr.read(file);
 	};
 
 	// ["", ["get", fileName, key, reset(0/1)]]
-	if (strcmp(functionName, "\"get\"") == 0) {
+	if (functionName == "get") {
 		ASSERT_EXT_ARGC(argc, 4);
 		std::string strOut("");
 		int reset = 0;
@@ -175,56 +158,31 @@ FILEXT_EXPORT int FILEXT_CALL RVExtensionArgs(char* output, int outputSize, cons
 		} catch ( ... ) {
 			reset = 0;
 		}
-		int retInt = gFileMgr.get(fileName, argv[2], strOut, outputSize-4, (bool)reset); // Just to be safe, reduce size a bit
+		int retInt = gFileMgr.get(file, argv[2], strOut, outputSize-4, (bool)reset); // Just to be safe, reduce size a bit
 		LOG("  Returning string of size: %i\n", (unsigned int)strOut.size());
 		ASSERT_BUFFER_SIZE((int)outputSize -1, (int)strOut.size());
-		strcpy(output, strOut.c_str());
+		std::strcpy(output, strOut.c_str());
 		return retInt;
 	};
 
 	// [value, ["set", fileName, key]]
-	if (strcmp(functionName, "\"set\"") == 0) {
+	if (functionName == "set") {
 		ASSERT_EXT_ARGC(argc, 3);
-		return gFileMgr.set(fileName, argv[2], data);
+		return gFileMgr.set(file, argv[2], data);
 	};
 
 	// ["", ["eraseKey", fileName, key]]
-	if (strcmp(functionName, "\"eraseKey\"") == 0) {
+	if (functionName == "eraseKey") {
 		ASSERT_EXT_ARGC(argc, 3);
-		return gFileMgr.eraseKey(fileName, argv[2]);
-	};
-
-	// ["", ["getFiles"]]
-	if (strcmp(functionName, "\"getFiles\"") == 0) {
-		ASSERT_EXT_ARGC(argc, 1);
-
-		// prevent filesystem exception on directory_iterator
-		if (!filesystem::exists(storageDirectory)) {
-			LOG_CRITICAL("failed to getFiles");
-			return 0;
-		}
-
-		vector<sqf::value> vectorFileNamesSQF;
-		for (const auto& entry : filesystem::directory_iterator(storageDirectory)) {
-			string fileName = entry.path().filename().string();
-			vectorFileNamesSQF.push_back(sqf::value(fileName));
-			LOG("File: %s\n", fileName.c_str());
-		}
-		
-		sqf::value fileNamesSQFArray(vectorFileNamesSQF);
-		string strOut = fileNamesSQFArray.to_string();
-
-		ASSERT_BUFFER_SIZE((int)outputSize - 1, (int)strOut.size());
-		strcpy(output, strOut.c_str());
-		return 0;
+		return gFileMgr.eraseKey(file, argv[2]);
 	};
 
 	// ["", ["deleteFile", fileName]]
-	if (strcmp(functionName, "\"deleteFile\"") == 0) {
-		if(filesystem::exists(fileName))
+	if (functionName == "deleteFile") {
+		if (std::filesystem::exists(file))
 		{
 			try {
-				filesystem::remove(fileName);
+				std::filesystem::remove(file);
 			} catch (...) {
 				return FILEXT_ERROR_WRONG_FILE_NAME;
 			}
@@ -233,12 +191,13 @@ FILEXT_EXPORT int FILEXT_CALL RVExtensionArgs(char* output, int outputSize, cons
 		{
 			return FILEXT_ERROR_WRONG_FILE_NAME;
 		}
+
 		return FILEXT_SUCCESS;
 	};
 
 	// ["", ["fileExists", fileName]]
-	if (strcmp(functionName, "\"fileExists\"") == 0) {
-		if (filesystem::exists(fileName))
+	if (functionName == "fileExists") {
+		if (std::filesystem::exists(file))
 			return FILEXT_SUCCESS;
 		else
 			return FILEXT_ERROR_WRONG_FILE_NAME;
@@ -264,68 +223,4 @@ FILEXT_EXPORT void FILEXT_CALL RVExtensionVersion(char* output, int outputSize)
 	{
 		strcpy(output, versionString.c_str());
 	}
-}
-
-// Ensures that the file name is correct:
-// Has non-negative length
-// Doesn't have / or \ inside it
-bool checkFileName(string& fileName) {
-
-	// Check length
-	if (fileName.size() == 0)
-		return false;
-
-	// Check forbidden characters
-	string forbiddenChars("\\/?*:|\"<>,;=");
-	if (fileName.find_first_of(forbiddenChars) != string::npos)
-		return false;
-
-	// All good so far
-	return true;
-}
-
-std::string getDllFolder()
-{
-#ifdef _MSC_VER
-	// Borrowed from https://gist.github.com/pwm1234/05280cf2e462853e183d
-
-	char path[FILENAME_MAX];
-	HMODULE hm = NULL;
-
-	if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
-		GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-		(LPCSTR)getDllFolder,
-		&hm))
-	{
-		LOG("error: GetModuleHandle returned %i", GetLastError());
-		return std::string("");
-	}
-
-	GetModuleFileNameA(hm, path, sizeof(path));
-	std::string p(path);
-
-	// Remove DLL name from the path
-	auto pos = p.rfind('\\');
-	p.erase(pos + 1, p.size());
-	return p;
-#else 
-	Dl_info dl_info;
-	dladdr((void*)getDllFolder, &dl_info);
-	std::string p = std::string(dl_info.dli_fname);
-
-	// Remove DLL name from the path
-	auto pos = p.rfind('/');
-	p.erase(pos + 1, p.size());
-	return p;
-#endif
-}
-
-std::filesystem::path& getLogPath() {
-	static std::filesystem::path logPath;
-
-	if (logPath.empty()) {
-		logPath = std::filesystem::path(getDllFolder()) / "filext_log.log";
-	}
-
-	return logPath;
 }
