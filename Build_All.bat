@@ -39,20 +39,25 @@ REM fallthrough intentionally to running cmake.
 
 %cmake% -G "Visual Studio 16 2019" -A Win32 -B "Build_Win32"
 %cmake% -G "Visual Studio 16 2019" -A x64 -B "Build_Win64"
-wsl cmake -G "Ninja" -B "Build_Linux" 
+
+IF "%~1"=="-debug" (
+    wsl cmake -G "Ninja" -B "Build_Linux" -DCMAKE_BUILD_TYPE=Debug
+) ELSE (
+    wsl cmake -G "Ninja" -B "Build_Linux" -DCMAKE_BUILD_TYPE=Release
+)
 
 IF "%~1"=="-debug" (
     echo Building - debug
     %cmake% --build "Build_Win32" --config Debug
     %cmake% --build "Build_Win64" --config Debug
     
-    wsl cmake --build "Build_Linux" --config Debug
+    wsl cmake --build "Build_Linux"
     Powershell -executionpolicy remotesigned -File ./buildArmaMod.ps1 "-debug"
 ) ELSE (
     echo Building - release
     %cmake% --build "Build_Win32" --config Release
     %cmake% --build "Build_Win64" --config Release
     
-    wsl cmake --build "Build_Linux" --config Release
+    wsl cmake --build "Build_Linux"
     Powershell -executionpolicy remotesigned -File ./buildArmaMod.ps1
 )
